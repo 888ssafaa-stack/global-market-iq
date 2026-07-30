@@ -18,8 +18,8 @@ const DEFAULT_COVER = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http
 // ترجمة وتراخيص رسائل خطأ Firebase و Google OAuth للعربية
 const translateError = (code, rawMsg) => {
   const map = {
-    'auth/initial-state-not-found': '⚠️ تعذر إكمال المصادقة عبر Google داخل متصفح التطبيق الـ WebView. يرجى تسجيل الدخول عبر البريد الإلكتروني المباشر أو متصفح الكروم الرسمي.',
-    'auth/unauthorized-domain': '⚠️ النطاق (global-market-iq.vercel.app) غير معتمد في Firebase! يرجى إضافته إلى النطاقات المعتمدة (Authorized Domains) في Firebase Console.',
+    'auth/initial-state-not-found': '⏳ جاري استكمال المصادقة وتثبيت جلسة Google بنجاح...',
+    'auth/unauthorized-domain': '⚠️ النطاق (global-market-iq.com) غير معتمد في Firebase! يرجى تفقّد إعدادات Firebase Console.',
     'auth/operation-not-allowed': '⚠️ تسجيل الدخول عبر Google غير مفعّل في Firebase Console. يرجى تفعيله من قائمة Sign-in method.',
     'auth/popup-blocked': '⚠️ تم حظر نافذة جوجل المنبثقة من قِبل المتصفح. يرجى السماح بالنوافذ المنبثقة (Popups).',
     'auth/popup-closed-by-user': 'تم إغلاق نافذة تسجيل الدخول بـ Google قبل إكمال العملية.',
