@@ -551,29 +551,19 @@ export default function Navbar({
                 <p style={{ fontSize: '0.85rem', color: 'var(--fb-text-secondary)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
                   تنزيل حزمة تثبيت الأندرويد المباشرة عبر الرابط المستقر السريع <code style={{ color: '#1877F2' }}>global-market-iq.apk</code>.
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <a
-                    href="https://github.com/888ssafaa/global-market-iq/releases/download/v1.0.0/global-market-iq.apk"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="/global-market-iq.apk"
+                    download="global-market-iq.apk"
                     className="btn-primary"
                     style={{ width: '100%', justifyContent: 'center', background: '#1877F2', textDecoration: 'none', textAlign: 'center', fontWeight: '800' }}
                     onClick={() => {
-                      alert('📲 تم بدء تنزيل ملف global-market-iq.apk عبر الرابط الخارجي المباشر والمستقر!');
+                      alert('📲 تم بدء تنزيل ملف global-market-iq.apk المباشر السريع (حجم خفيف 15 ميغابايت)!\n\n💡 ملاحظة:\nإذا ظهر تحذير Google Play Protect، اضغط "مزيد من التفاصيل" ⬅️ "التثبيت على أي حال".');
                       setIsInstallModalOpen(false);
                     }}
                   >
                     <Download size={18} />
-                    <span>تحميل من سيرفر GitHub Releases المباشر 🚀</span>
+                    <span>تحميل ملف global-market-iq.apk المباشر (15 ميغابايت) 💾</span>
                   </a>
-                  <a
-                    href="/global-market-iq.apk"
-                    download="global-market-iq.apk"
-                    style={{ fontSize: '0.8rem', color: 'var(--fb-text-secondary)', textAlign: 'center', textDecoration: 'underline', marginTop: '4px' }}
-                  >
-                    أو التحميل المباشر من سيرفر الموقع المحلي
-                  </a>
-                </div>
               </div>
             </div>
           </div>
