@@ -551,19 +551,29 @@ export default function Navbar({
                 <p style={{ fontSize: '0.85rem', color: 'var(--fb-text-secondary)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
                   تنزيل حزمة تثبيت الأندرويد المباشرة عبر الرابط المستقر السريع <code style={{ color: '#1877F2' }}>global-market-iq.apk</code>.
                 </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <a
-                    href="/global-market-iq.apk"
-                    download="global-market-iq.apk"
+                    href="https://drive.google.com/drive/folders/1NB-IVwsMDeX1klZ0CKbk6oyfgNmg4qNN?usp=drive_link"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="btn-primary"
-                    style={{ width: '100%', justifyContent: 'center', background: '#1877F2', textDecoration: 'none', textAlign: 'center', fontWeight: '800' }}
+                    style={{ width: '100%', justifyContent: 'center', background: 'linear-gradient(135deg, #1877F2, #2563EB)', textDecoration: 'none', textAlign: 'center', fontWeight: '800', padding: '12px' }}
                     onClick={() => {
-                      alert('📲 تم بدء تنزيل ملف global-market-iq.apk المباشر السريع (حجم خفيف 15 ميغابايت)!\n\n💡 ملاحظة:\nإذا ظهر تحذير Google Play Protect، اضغط "مزيد من التفاصيل" ⬅️ "التثبيت على أي حال".');
                       setIsInstallModalOpen(false);
                     }}
                   >
                     <Download size={18} />
-                    <span>تحميل ملف global-market-iq.apk المباشر (15 ميغابايت) 💾</span>
+                    <span>تحميل ملف الـ APK عبر Google Drive المباشر 📁🚀</span>
                   </a>
+
+                  <a
+                    href="/global-market-iq.apk"
+                    download="global-market-iq.apk"
+                    style={{ fontSize: '0.82rem', color: 'var(--fb-text-secondary)', textAlign: 'center', textDecoration: 'underline', marginTop: '2px' }}
+                  >
+                    أو التحميل المباشر من سيرفر الموقع (15 ميغابايت)
+                  </a>
+                </div>
               </div>
             </div>
           </div>
