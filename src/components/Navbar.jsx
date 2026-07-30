@@ -549,21 +549,31 @@ export default function Navbar({
                   <span>2️⃣ تحميل ملف الـ APK المباشر (Android APK)</span>
                 </div>
                 <p style={{ fontSize: '0.85rem', color: 'var(--fb-text-secondary)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
-                  تنزيل حزمة تثبيت الأندرويد المباشرة <code style={{ color: '#1877F2' }}>global-market-iq.apk</code> وإرسالها لأصدقائك.
+                  تنزيل حزمة تثبيت الأندرويد المباشرة عبر الرابط المستقر السريع <code style={{ color: '#1877F2' }}>global-market-iq.apk</code>.
                 </p>
-                <a
-                  href="/global-market-iq.apk"
-                  download="global-market-iq.apk"
-                  className="btn-primary"
-                  style={{ width: '100%', justifyContent: 'center', background: '#1877F2', textDecoration: 'none', textAlign: 'center', fontWeight: '800' }}
-                  onClick={() => {
-                    alert('📲 تم بدء تنزيل ملف global-market-iq.apk!\n\n💡 ملاحظة عند التثبيت:\nإذا ظهرت لك شاشة تحذير Google Play Protect عند التثبيت، اضغط على "مزيد من التفاصيل" (More Details) ⬅️ ثم "التثبيت على أي حال" (Install anyway).');
-                    setIsInstallModalOpen(false);
-                  }}
-                >
-                  <Download size={18} />
-                  <span>تحميل ملف global-market-iq.apk الآن 💾</span>
-                </a>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <a
+                    href="https://github.com/888ssafaa/global-market-iq/releases/download/v1.0.0/global-market-iq.apk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', background: '#1877F2', textDecoration: 'none', textAlign: 'center', fontWeight: '800' }}
+                    onClick={() => {
+                      alert('📲 تم بدء تنزيل ملف global-market-iq.apk عبر الرابط الخارجي المباشر والمستقر!');
+                      setIsInstallModalOpen(false);
+                    }}
+                  >
+                    <Download size={18} />
+                    <span>تحميل من سيرفر GitHub Releases المباشر 🚀</span>
+                  </a>
+                  <a
+                    href="/global-market-iq.apk"
+                    download="global-market-iq.apk"
+                    style={{ fontSize: '0.8rem', color: 'var(--fb-text-secondary)', textAlign: 'center', textDecoration: 'underline', marginTop: '4px' }}
+                  >
+                    أو التحميل المباشر من سيرفر الموقع المحلي
+                  </a>
+                </div>
               </div>
             </div>
           </div>
