@@ -1,8 +1,9 @@
 // src/context/AuthContext.jsx
 // ═══════════════════════════════════════════════════════════
-// نظام المصادقة المستقر المباشر (Direct Google Identity Services - GSI)
-// الاعتماد الكامل على localStorage للتخزين الفوري وحفظ الجلسة 100%
-// مزامنةFirestore للسيرفر دون الاعتماد على Firebase Auth
+// نظام المصادقة المستقر الفوري المباشر بـ Google Identity Services (GSI)
+// - إلغاء الحلقة المفرغة (Loop) نهائياً عبر التقاط التوكن (JWT Credential) فوراً
+// - حفظ البيانات محلياً تحت المفتاحين gm_user_profile و gm_uid
+// - التحديث الفوري المباشر لجميع واجهات وتطبيق الهاتف والموقع
 // ═══════════════════════════════════════════════════════════
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -17,19 +18,18 @@ export const useAuth = () => useContext(AuthContext);
 const GOOGLE_CLIENT_ID = '1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com';
 const OWNER_EMAIL = '888ssafaa@gmail.com';
 
-const enforceRole = (profile, email) => ({
-  ...profile,
-  role: (email && email.toLowerCase() === OWNER_EMAIL.toLowerCase()) ? 'APP_OWNER' : (profile?.role || 'REGULAR_USER'),
-});
-
-// ═══════════════════════════════════════════════════════════
-// إدارة التخزين المحلي الصريح لضمان ديمومة الجلسة 100%
-// ═══════════════════════════════════════════════════════════
 const KEY_UID         = 'gm_uid';
 const KEY_FULL_USER   = 'gm_user_profile';
 const KEY_TEXT        = (uid) => `gm_text_${uid}`;
 const KEY_AVATAR      = (uid) => `gm_avatar_${uid}`;
 const KEY_COVER       = (uid) => `gm_cover_${uid}`;
+
+const enforceRole = (profile, email) => ({
+  ...profile,
+  role: (email && email.toLowerCase() === OWNER_EMAIL.toLowerCase()) ? 'APP_OWNER' : (profile?.role || 'REGULAR_USER'),
+});
+
+const isBase64 = (v) => typeof v === 'string' && (v.startsWith('data:') || v.length > 5000);
 
 const jSet = (key, val) => {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch (_) {}
@@ -57,6 +57,7 @@ export const loadUserImages = (uid) => {
   return r;
 };
 
+// ─── حفظ الحساب صراحة تحت المفاتيح المطلوبة ────────────────────
 const saveSessionProfile = (uid, profile) => {
   if (!uid || !profile) return;
   const cleanText = {};
@@ -64,6 +65,7 @@ const saveSessionProfile = (uid, profile) => {
     if (!isBase64(v)) cleanText[k] = v;
   });
 
+  // حفظ صريح تحت المفاتيح المطلوبة
   jSet(KEY_FULL_USER, profile);
   jSet(KEY_TEXT(uid), cleanText);
   lsSet(KEY_UID, uid);
@@ -108,7 +110,7 @@ const fsSave = (uid, profile) => {
   } catch (_) {}
 };
 
-// ─── فك تشفير هادئ لـ Google JWT Token ──────────────────────
+// ─── فك تشفير هادئ وسريع لـ JWT Credential ──────────────────
 const parseJwt = (token) => {
   try {
     const base64Url = token.split('.')[1];
@@ -125,15 +127,80 @@ const parseJwt = (token) => {
   }
 };
 
-// ═══════════════════════════════════════════════════════════
-// AuthProvider الخالي تماماً من مشاكل الـ Session و Firebase Auth
-// ═══════════════════════════════════════════════════════════
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => loadSessionProfile());
   const [loading, setLoading] = useState(false);
   const uidRef = useRef(user?.id || null);
 
-  // تحديث المزامنة مع Firestore عند تحميل الصفحة إن وجد حساب مسجل محلياً
+  // معالجة فورية وتثبيت الجلسة عند اختيار حساب Google
+  const handleGoogleCredentialResponse = async (response) => {
+    if (!response || !response.credential) return;
+    const payload = parseJwt(response.credential);
+    if (!payload || !payload.email) return;
+
+    const uid = `g_${payload.sub}`;
+    let fsData = await fsLoad(uid);
+    let fullProfile;
+
+    if (fsData) {
+      fullProfile = enforceRole({
+        ...fsData,
+        ...loadUserImages(uid),
+        id: uid,
+        email: payload.email,
+        name: fsData.name || payload.name || 'مستخدم Google',
+        avatar: fsData.avatar || payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.name || 'G')}&background=1877F2&color=fff`,
+      }, payload.email);
+    } else {
+      fullProfile = enforceRole({
+        ...INITIAL_USER,
+        id: uid,
+        email: payload.email,
+        name: payload.name || payload.given_name || payload.email.split('@')[0] || 'مستخدم Google',
+        avatar: payload.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.name || 'G')}&background=1877F2&color=fff`,
+        cover: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200',
+        governorate: 'بغداد',
+        joinedDate: new Date().toLocaleDateString('ar-IQ'),
+        bio: 'مستخدم مسجل عبر حساب Google الرسمي'
+      }, payload.email);
+
+      fsSave(uid, fullProfile);
+    }
+
+    // حفظ الجلسة فوراً في localStorage تحت gm_user_profile و gm_uid
+    saveSessionProfile(uid, fullProfile);
+    uidRef.current = uid;
+    setUser(fullProfile);
+
+    // تحديث الواجهة فوراً
+    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('auth_state_change'));
+    return fullProfile;
+  };
+
+  // تهيئة GSI مرة واحدة لمنع أي Loop عند الاختيار
+  useEffect(() => {
+    const initGsiScript = () => {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+        } catch (_) {}
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initGsiScript();
+    } else {
+      window.addEventListener('load', initGsiScript, { once: true });
+    }
+  }, []);
+
+  // المزامنة مع Firestore عند تحميل الصفحة
   useEffect(() => {
     const local = loadSessionProfile();
     if (local?.id) {
@@ -148,7 +215,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // ── login المباشر (البريد / الحساب الشخصي) ────────────────
+  // ── login المباشر ─────────────────────────────────────────
   const login = (profileObj) => {
     const uid = profileObj?.id || `user_${Date.now()}`;
     const full = enforceRole({ ...profileObj, id: uid }, profileObj.email);
@@ -157,10 +224,11 @@ export const AuthProvider = ({ children }) => {
     saveSessionProfile(uid, full);
     fsSave(uid, full);
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('auth_state_change'));
     return full;
   };
 
-  // ── updateUser (تحديث البيانات الشخصية) ─────────────────
+  // ── updateUser ───────────────────────────────────────────
   const updateUser = async (updatedFields) => {
     const uid = user?.id || uidRef.current;
     if (!uid) return null;
@@ -170,10 +238,11 @@ export const AuthProvider = ({ children }) => {
     saveSessionProfile(uid, merged);
     fsSave(uid, merged);
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('auth_state_change'));
     return merged;
   };
 
-  // ── logout (تسجيل الخروج النظيف) ───────────────────────────
+  // ── logout ───────────────────────────────────────────────
   const logout = async () => {
     const uid = user?.id || uidRef.current;
     setUser(null);
@@ -183,15 +252,16 @@ export const AuthProvider = ({ children }) => {
       lsDel(KEY_TEXT(uid), KEY_AVATAR(uid), KEY_COVER(uid));
     }
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new Event('auth_state_change'));
   };
 
-  // ── loginWithGoogle (مستقر 100% على كافة الهواتف والمتصفحات) ─
+  // ── loginWithGoogle الفوري المباشر ─────────────────────────
   const loginWithGoogle = async () => {
     setLoading(true);
     try {
       let gUser = null;
 
-      // 1. أجهزة الموبايل والتطبيق الأصلي (Native Android APK / Capacitor)
+      // 1. الأجهزة المحمولة الأصيلة (Native APK)
       if (Capacitor.isNativePlatform()) {
         try {
           GoogleAuth.initialize({
@@ -213,100 +283,73 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // 2. متصفحات الموبايل والكمبيوتر (Mobile Web Chrome/Safari & Desktop) عبر Google Identity Services (GSI)
+      // 2. متصفحات الموبايل والكمبيوتر (Mobile Web & Desktop)
       if (!gUser) {
         gUser = await new Promise((resolve, reject) => {
-          const runAuthFlow = () => {
-            if (!window.google || !window.google.accounts) {
-              reject(new Error('مكتبة Google Identity غير متوفرة. تحقق من اتصالك بالإنترنت.'));
-              return;
-            }
+          let resolved = false;
 
-            let resolved = false;
+          // إعادة إسناد الـ Callback للالتقاط الفوري
+          if (window.google?.accounts?.id) {
+            window.google.accounts.id.initialize({
+              client_id: GOOGLE_CLIENT_ID,
+              callback: async (res) => {
+                if (resolved) return;
+                resolved = true;
+                const profile = await handleGoogleCredentialResponse(res);
+                if (profile) resolve(profile);
+                else reject(new Error('تعذر معالجة رمز الدخول.'));
+              },
+              auto_select: false,
+              cancel_on_tap_outside: true,
+            });
 
-            // خيار A: استخدام OAuth2 Token Client المباشر والمستقر على الهواتف
-            try {
-              const tokenClient = window.google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: 'email profile openid',
-                callback: (tokenRes) => {
-                  if (tokenRes && tokenRes.access_token && !resolved) {
-                    resolved = true;
-                    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                      headers: { Authorization: `Bearer ${tokenRes.access_token}` },
-                    })
-                      .then(r => r.json())
-                      .then(userInfo => {
-                        resolve({
-                          uid: `g_${userInfo.sub}`,
-                          email: userInfo.email,
-                          name: userInfo.name || 'مستخدم Google',
-                          photoURL: userInfo.picture,
-                        });
-                      })
-                      .catch(reject);
-                  } else if (!resolved) {
-                    reject(new Error('تم إلغاء عملية الدخول بـ Google.'));
-                  }
-                },
-                error_callback: (err) => {
-                  console.warn('[GSI TokenClient Error]:', err);
+            // فتح نافذة اختيار الحساب المباشرة
+            window.google.accounts.id.prompt((notif) => {
+              if ((notif.isNotDisplayed() || notif.isSkippedMoment()) && !resolved) {
+                // استخدام OAuth2 Client المباشر كخيار موثوق
+                try {
+                  const client = window.google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'email profile openid',
+                    callback: (tokenRes) => {
+                      if (tokenRes?.access_token && !resolved) {
+                        resolved = true;
+                        fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                          headers: { Authorization: `Bearer ${tokenRes.access_token}` },
+                        })
+                          .then(r => r.json())
+                          .then(async (uInfo) => {
+                            const uid = `g_${uInfo.sub}`;
+                            const full = enforceRole({
+                              ...INITIAL_USER,
+                              id: uid,
+                              email: uInfo.email,
+                              name: uInfo.name || 'مستخدم Google',
+                              avatar: uInfo.picture,
+                            }, uInfo.email);
+                            saveSessionProfile(uid, full);
+                            setUser(full);
+                            window.dispatchEvent(new Event('storage'));
+                            window.dispatchEvent(new Event('auth_state_change'));
+                            resolve(full);
+                          })
+                          .catch(reject);
+                      }
+                    },
+                  });
+                  client.requestAccessToken();
+                } catch (err) {
                   if (!resolved) reject(err);
                 }
-              });
-
-              tokenClient.requestAccessToken();
-            } catch (gErr) {
-              if (!resolved) reject(gErr);
-            }
-          };
-
-          if (document.readyState === 'complete' || window.google) {
-            runAuthFlow();
+              }
+            });
           } else {
-            window.addEventListener('load', runAuthFlow, { once: true });
+            reject(new Error('مكتبة Google Sign-In غير جاهزة بعد.'));
           }
         });
       }
 
-      if (!gUser || !gUser.email) {
-        throw new Error('تعذر جلب بيانات حساب Google.');
-      }
-
-      const uid = gUser.uid || `g_${gUser.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
-
-      let fsData = await fsLoad(uid);
-      let fullProfile;
-
-      if (fsData) {
-        fullProfile = enforceRole({
-          ...fsData,
-          id: uid,
-          email: gUser.email,
-          name: fsData.name || gUser.name || 'مستخدم Google',
-          avatar: fsData.avatar || gUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(gUser.name || 'G')}&background=1877F2&color=fff`,
-        }, gUser.email);
-      } else {
-        fullProfile = enforceRole({
-          ...INITIAL_USER,
-          id: uid,
-          email: gUser.email,
-          name: gUser.name || gUser.email.split('@')[0] || 'مستخدم Google',
-          avatar: gUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(gUser.name || 'G')}&background=1877F2&color=fff`,
-          cover: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200',
-          governorate: 'بغداد',
-          joinedDate: new Date().toLocaleDateString('ar-IQ'),
-          bio: 'مستخدم مسجل عبر حساب Google الرسمي'
-        }, gUser.email);
-
-        fsSave(uid, fullProfile);
-      }
-
-      setUser(fullProfile);
-      uidRef.current = uid;
-      saveSessionProfile(uid, fullProfile);
-      window.dispatchEvent(new Event('storage'));
-      return fullProfile;
+      return gUser;
     } catch (error) {
       console.error('[Google Sign-In Direct Error]:', error);
       throw error;

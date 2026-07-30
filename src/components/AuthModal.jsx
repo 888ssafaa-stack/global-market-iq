@@ -28,6 +28,19 @@ export default function AuthModal({ isOpen, onClose }) {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // استماع فوري لإغلاق المودال تلقائياً عند التقاط توكن Google
+  React.useEffect(() => {
+    const handleAuthState = () => {
+      const savedUser = localStorage.getItem('gm_user_profile');
+      if (savedUser && isOpen) {
+        setSuccess('✅ تم الدخول بحساب Google بنجاح!');
+        setTimeout(handleClose, 500);
+      }
+    };
+    window.addEventListener('auth_state_change', handleAuthState);
+    return () => window.removeEventListener('auth_state_change', handleAuthState);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleClose = () => {
@@ -47,7 +60,7 @@ export default function AuthModal({ isOpen, onClose }) {
         const userObj = await loginWithGoogle();
         if (userObj) {
           setSuccess(`✅ تم الدخول بحساب Google بنجاح! مرحباً ${userObj.name}`);
-          setTimeout(handleClose, 1000);
+          setTimeout(handleClose, 600);
         }
       }
     } catch (err) {
