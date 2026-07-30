@@ -1,0 +1,235 @@
+import React, { useState } from 'react';
+import { 
+  ThumbsUp, 
+  Edit3, 
+  Trash2, 
+  Power, 
+  ImagePlus, 
+  MapPin, 
+  PhoneCall, 
+  Compass, 
+  ChevronRight, 
+  ChevronLeft,
+  ShieldCheck,
+  UserCheck,
+  MessageCircle,
+  MessageSquare
+} from 'lucide-react';
+
+export default function ListingCard({
+  listing,
+  currentUser,
+  onLike,
+  onEdit,
+  onDelete,
+  onToggleDisable,
+  onManagePhotos
+}) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // التأكد من الصلاحيات المشتركة: مالك التطبيق أو صاحب الصفحة الإعلانية
+  const isOwner = currentUser?.id === listing.userId;
+  const isAppOwner = currentUser.role === 'APP_OWNER';
+  const hasSharedPermission = isOwner || isAppOwner;
+
+  const images = listing.images && listing.images.length > 0 
+    ? listing.images 
+    : ['https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800'];
+
+  const isLiked = listing.likedBy?.includes(currentUser?.id);
+  const commentsCount = listing.comments?.length || 0;
+
+  const handleNextImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrevImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const formattedPrice = Number(listing.price).toLocaleString('ar-IQ');
+
+  return (
+    <div className={`listing-card ${listing.status === 'disabled' ? 'disabled-card' : ''}`}>
+      {/* شارة الإعلان المعطل */}
+      {listing.status === 'disabled' && (
+        <div className="card-disabled-overlay">
+          مُعطّل حالياً
+        </div>
+      )}
+
+      {/* رأس البطاقة: صاحب الإعلان + تاريخ النشر + شارة الحالة */}
+      <div className="card-header-user">
+        <div className="user-info-mini">
+          <img src={listing.userAvatar} alt={listing.userName} />
+          <div>
+            <div className="user-name-title">{listing.userName}</div>
+            <div className="user-time-ago">
+              {new Date(listing.createdAt).toLocaleDateString('ar-IQ')} • {listing.category}
+            </div>
+          </div>
+        </div>
+
+        <span className={`condition-badge ${listing.condition === 'جديد' ? 'new' : 'used'}`}>
+          {listing.condition}
+        </span>
+      </div>
+
+      {/* معرض الصور الإعلاني حتى 6 صور */}
+      <div className="card-media">
+        <img src={images[currentImageIndex]} alt={listing.title} />
+
+        {images.length > 1 && (
+          <>
+            <button className="carousel-nav-btn prev" onClick={handlePrevImage} title="الصورة السابقة">
+              <ChevronRight size={18} />
+            </button>
+            <button className="carousel-nav-btn next" onClick={handleNextImage} title="الصورة التالية">
+              <ChevronLeft size={18} />
+            </button>
+          </>
+        )}
+
+        <div className="image-counter-tag">
+          <ImagePlus size={12} />
+          <span>{currentImageIndex + 1} / {images.length} صور</span>
+        </div>
+      </div>
+
+      {/* محتوى الإعلان */}
+      <div className="card-body">
+        <div className="card-title-price">
+          <h3 className="card-item-title">{listing.title}</h3>
+          <div className="card-item-price">
+            {formattedPrice} {listing.currency}
+          </div>
+        </div>
+
+        {/* تفاصيل الموقع ورقم الهاتف والنقطة الدالة */}
+        <div className="card-location-info">
+          <div className="info-row">
+            <MapPin size={14} color="#1877F2" />
+            <span><strong>المحافظة والمنطقة:</strong> {listing.governorate} - {listing.area}</span>
+          </div>
+
+          <div className="info-row">
+            <Compass size={14} color="#F59E0B" />
+            <span><strong>أقرب نقطة دالة:</strong> {listing.nearestLandmark || 'غير محددة'}</span>
+          </div>
+
+          <div className="info-row" style={{ marginTop: '4px' }}>
+            <PhoneCall size={14} color="#10B981" />
+            <span><strong>رقم الهاتف:</strong> </span>
+            <a 
+              href={`tel:${listing.phone}`} 
+              style={{ color: '#10B981', fontWeight: '800', textDecoration: 'none', marginLeft: '8px' }}
+            >
+              {listing.phone}
+            </a>
+            <a 
+              href={`https://wa.me/${listing.phone.replace(/[^0-9]/g, '')}`} 
+              target="_blank" 
+              rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: '#25D366', fontSize: '0.8rem', fontWeight: '700', textDecoration: 'none' }}
+            >
+              <MessageCircle size={13} /> واتساب
+            </a>
+          </div>
+        </div>
+
+        <p className="card-desc">{listing.description}</p>
+
+        {/* شارة الصلاحيات المشتركة */}
+        {hasSharedPermission && (
+          <div className="shared-perm-tag">
+            {isAppOwner ? (
+              <>
+                <ShieldCheck size={14} />
+                <span>صلاحيات إدارية عامة (مالك التطبيق)</span>
+              </>
+            ) : (
+              <>
+                <UserCheck size={14} />
+                <span>صلاحيات صاحب الصفحة الإعلانية</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* أزرار التحكم والتفاعل المباشر دون أي دافع مالي داخلي */}
+      <div className="card-actions-bar">
+        {/* 1. زر الاعجابات */}
+        <button 
+          className={`action-btn ${isLiked ? 'liked' : ''}`}
+          onClick={() => onLike(listing?.id)}
+          title="زر الإعجاب بالإعلان"
+        >
+          <ThumbsUp size={16} fill={isLiked ? '#1877F2' : 'none'} />
+          <span>{listing.likesCount || 0} إعجاب</span>
+        </button>
+
+        {/* 2. زر التعليقات */}
+        <button 
+          className="action-btn"
+          onClick={() => onEdit(listing)}
+          title="عرض الإعلان وكتابة تعليق"
+          style={{ color: '#8B5CF6' }}
+        >
+          <MessageSquare size={16} />
+          <span>{commentsCount} تعليق</span>
+        </button>
+
+        {/* 3. زر تعديل الإعلان (صلاحية مشتركة) */}
+        {hasSharedPermission && (
+          <button 
+            className="action-btn edit-btn"
+            onClick={() => onEdit(listing)}
+            title="زر تعديل الإعلان (صلاحية مشتركة)"
+          >
+            <Edit3 size={16} />
+            <span>تعديل</span>
+          </button>
+        )}
+
+        {/* 4. زر إضافة/إدارة الصور حتى 6 صور (صلاحية مشتركة) */}
+        {hasSharedPermission && (
+          <button 
+            className="action-btn"
+            onClick={() => onManagePhotos(listing)}
+            title="زر إدارة الصور"
+          >
+            <ImagePlus size={16} />
+            <span>الصور</span>
+          </button>
+        )}
+
+        {/* 5. زر تعطيل/تفعيل الإعلان (صلاحية مشتركة) */}
+        {hasSharedPermission && (
+          <button 
+            className="action-btn toggle-status-btn"
+            onClick={() => onToggleDisable(listing?.id)}
+            title="زر تعطيل الإعلان أو إعادة تفعيله"
+          >
+            <Power size={16} />
+            <span>{listing.status === 'disabled' ? 'تفعيل' : 'تعطيل'}</span>
+          </button>
+        )}
+
+        {/* 6. زر حذف الإعلان (صلاحية مشتركة) */}
+        {hasSharedPermission && (
+          <button 
+            className="action-btn delete-btn"
+            onClick={() => onDelete(listing?.id)}
+            title="زر حذف الإعلان بالكامل"
+          >
+            <Trash2 size={16} />
+            <span>حذف</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

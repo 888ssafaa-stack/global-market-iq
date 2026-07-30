@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // السماح بالقراءة والكتابة لكافة مجموعات الإعلانات والمستخدمين والإشعارات
+    match /listings/{document=**} {
+      allow read, write: if true;
+    }
+    match /ads/{document=**} {
+      allow read, write: if true;
+    }
+    match /items/{document=**} {
+      allow read, write: if true;
+    }
+    match /users/{document=**} {
+      allow read, write: if true;
+    }
+    match /notifications/{document=**} {
+      allow read, write: if true;
+    }
+    match /partnerships/{document=**} {
+      allow read, write: if true;
+    }
+    match /reports/{document=**} {
+      allow read, write: if true;
+    }
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

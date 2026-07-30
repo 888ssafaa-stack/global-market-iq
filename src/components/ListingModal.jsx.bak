@@ -1,0 +1,544 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  X, 
+  ImagePlus, 
+  Trash2, 
+  Plus, 
+  CheckCircle2, 
+  MessageSquare, 
+  Send, 
+  Upload, 
+  PhoneCall, 
+  MessageCircle, 
+  MapPin, 
+  Compass
+} from 'lucide-react';
+import { GOVERNORATES, CATEGORIES } from '../data/mockData';
+
+export default function ListingModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  editingListing,
+  currentUser,
+  onlyPhotosMode = false,
+  onAddComment,
+  onDeleteComment
+}) {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    price: '',
+    currency: 'IQD',
+    category: 'عقارات',
+    governorate: 'بغداد',
+    area: '',
+    nearestLandmark: '',
+    phone: currentUser.phone || '',
+    condition: 'جديد',
+    images: []
+  });
+
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [commentText, setCommentText] = useState('');
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (editingListing) {
+      setFormData({
+        title: editingListing.title || '',
+        description: editingListing.description || '',
+        price: editingListing.price || '',
+        currency: editingListing.currency || 'IQD',
+        category: editingListing.category || 'عقارات',
+        governorate: editingListing.governorate || 'بغداد',
+        area: editingListing.area || '',
+        nearestLandmark: editingListing.nearestLandmark || '',
+        phone: editingListing.phone || currentUser.phone || '',
+        condition: editingListing.condition || 'جديد',
+        images: editingListing.images ? [...editingListing.images] : []
+      });
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        price: '',
+        currency: 'IQD',
+        category: 'عقارات',
+        governorate: 'بغداد',
+        area: '',
+        nearestLandmark: '',
+        phone: currentUser.phone || '',
+        condition: 'جديد',
+        images: [
+          'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&q=80&w=800'
+        ]
+      });
+    }
+    setNewImageUrl('');
+    setErrorMsg('');
+    setCommentText('');
+  }, [editingListing, currentUser, isOpen]);
+
+  if (!isOpen) return null;
+
+  // 1. إضافة صورة عبر رابط خاري (URL)
+  const handleAddPhotoByUrl = (e) => {
+    if (e) e.preventDefault();
+    const url = newImageUrl.trim();
+    if (!url) {
+      setErrorMsg('يرجى وضع رابط صورة صالح');
+      return;
+    }
+    if (formData.images.length >= 6) {
+      setErrorMsg('عفواً، الحد الأقصى المسموح به هو 6 صور فقط لكل إعلان!');
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images, url]
+    }));
+    setNewImageUrl('');
+    setErrorMsg('');
+  };
+
+  // 2. رفع صور مباشرة من جهاز المستخدِم (Data URL / Base64)
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const availableSlots = 6 - formData.images.length;
+    if (availableSlots <= 0) {
+      setErrorMsg('عفواً، لقد وصلت للحد الأقصى للصور (6 صور)!');
+      return;
+    }
+
+    const filesToProcess = files.slice(0, availableSlots);
+    let loadedImages = [];
+    let processedCount = 0;
+
+    filesToProcess.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          loadedImages.push(event.target.result);
+        }
+        processedCount++;
+
+        if (processedCount === filesToProcess.length) {
+          setFormData((prev) => ({
+            ...prev,
+            images: [...prev.images, ...loadedImages].slice(0, 6)
+          }));
+          setErrorMsg('');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (files.length > availableSlots) {
+      setErrorMsg(`تم إضافة ${availableSlots} صورة فقط لتجاوز الحد الأقصى (6 صور).`);
+    }
+
+    // إعادة ضبط قيمة حقل الملفات
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // 3. حذف صورة من القائمة
+  const handleRemovePhoto = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+    setErrorMsg('');
+  };
+
+  // 4. حفظ الإعلان
+  const handleSubmitForm = (e) => {
+    e.preventDefault();
+    if (!formData.title.trim()) {
+      setErrorMsg('يرجى كتابة عنوان الإعلان');
+      return;
+    }
+    if (!formData.area.trim()) {
+      setErrorMsg('يرجى كتابة اسم المنطقة');
+      return;
+    }
+    if (!formData.phone.trim()) {
+      setErrorMsg('يرجى كتابة رقم الهاتف للاتصال');
+      return;
+    }
+    if (formData.images.length === 0) {
+      setErrorMsg('يجب إضافة صورة واحدة على الأقل (حتى 6 صور)');
+      return;
+    }
+
+    onSubmit({
+      ...formData,
+      price: Number(formData.price) || 0
+    });
+    onClose();
+  };
+
+  // 5. إرسال تعليق
+  const handleSendComment = (e) => {
+    e.preventDefault();
+    if (!commentText.trim() || !editingListing) return;
+    onAddComment(editingListing.id, commentText.trim());
+    setCommentText('');
+  };
+
+  const canDeleteComment = (comment) => {
+    if (!editingListing) return false;
+    const isCommentAuthor = comment.userId === currentUser?.id;
+    const isListingOwner = editingListing.userId === currentUser?.id;
+    const isAppOwner = currentUser.role === 'APP_OWNER';
+    return isCommentAuthor || isListingOwner || isAppOwner;
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content" style={{ maxWidth: '680px' }}>
+        <div className="modal-header">
+          <h3>
+            {onlyPhotosMode 
+              ? 'إدارة وترفيع الصور (حتى 6 صور)' 
+              : editingListing 
+                ? `تفاصيل وتعديل إعلان: ${editingListing.title}` 
+                : 'نشر إعلان جديد في السوق'}
+          </h3>
+          <button className="modal-close-btn" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="modal-body">
+          {errorMsg && (
+            <div style={{ padding: '10px 14px', borderRadius: '8px', background: '#FEE2E2', color: '#DC2626', fontWeight: '700', fontSize: '0.9rem' }}>
+              {errorMsg}
+            </div>
+          )}
+
+          {/* قسم التعديل والنشر */}
+          <form onSubmit={handleSubmitForm} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* قسم إدارة وإضافة الصور حتى 6 صور */}
+            <div className="form-group">
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: '800' }}>صور الإعلان (أضف من الجهاز أو عبر رابط - حتى 6 صور)</span>
+                <span style={{ color: formData.images.length >= 6 ? '#EF4444' : '#1877F2', fontWeight: '800', fontSize: '1rem' }}>
+                  {formData.images.length} / 6
+                </span>
+              </label>
+
+              <div className="photos-upload-box">
+                {/* خيار الرفع من الجهاز + إضافة من رابط */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {/* زر اختيار الصور من الكمبيوتر/الهاتف */}
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      multiple 
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      style={{ display: 'none' }}
+                      id="local-file-upload-input"
+                      disabled={formData.images.length >= 6}
+                    />
+
+                    <label 
+                      htmlFor="local-file-upload-input" 
+                      className="btn-primary" 
+                      style={{ 
+                        cursor: formData.images.length >= 6 ? 'not-allowed' : 'pointer', 
+                        backgroundColor: formData.images.length >= 6 ? '#A7F3D0' : '#10B981',
+                        opacity: formData.images.length >= 6 ? 0.6 : 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Upload size={18} />
+                      <span>رفع صور من الجهاز / الاستوديو</span>
+                    </label>
+                  </div>
+
+                  {/* خيار إضافة عبر رابط صورة */}
+                  <div className="add-photo-url-input">
+                    <input 
+                      type="url" 
+                      className="form-input" 
+                      placeholder="أو ضع رابط صورة هنا (Image URL)..."
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddPhotoByUrl(e);
+                        }
+                      }}
+                      disabled={formData.images.length >= 6}
+                      style={{ flex: 1 }}
+                    />
+                    <button 
+                      type="button" 
+                      className="btn-primary" 
+                      onClick={handleAddPhotoByUrl}
+                      disabled={formData.images.length >= 6}
+                    >
+                      <Plus size={16} /> إضافة بالرابط
+                    </button>
+                  </div>
+                </div>
+
+                {/* عرض بطاقات الصور المصغرة المضافة مع زر الإزالة X */}
+                {formData.images.length > 0 && (
+                  <div className="photos-grid-preview" style={{ marginTop: '14px' }}>
+                    {formData.images.map((url, idx) => (
+                      <div key={idx} className="photo-preview-item">
+                        <img src={url} alt={`صورة ${idx + 1}`} />
+                        <button 
+                          type="button" 
+                          className="remove-photo-btn"
+                          onClick={() => handleRemovePhoto(idx)}
+                          title="إزالة هذه الصورة"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {!onlyPhotosMode && (
+              <>
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label>عنوان الإعلان</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="عنوان الإعلان"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>السعر والعملة</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="number" 
+                        className="form-input" 
+                        placeholder="السعر"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        style={{ flex: 1 }}
+                        required
+                      />
+                      <select 
+                        className="form-select"
+                        value={formData.currency}
+                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                      >
+                        <option value="IQD">د.ع (دينار)</option>
+                        <option value="USD">$ (دولار)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label>النوع / القسم (11 فئة)</label>
+                    <select 
+                      className="form-select"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    >
+                      {CATEGORIES.map((c) => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>الحالة (جديد أم مستخدم)</label>
+                    <select 
+                      className="form-select"
+                      value={formData.condition}
+                      onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
+                    >
+                      <option value="جديد">جديد</option>
+                      <option value="مستخدم">مستخدم</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label>المحافظة</label>
+                    <select 
+                      className="form-select"
+                      value={formData.governorate}
+                      onChange={(e) => setFormData({ ...formData, governorate: e.target.value })}
+                    >
+                      {GOVERNORATES.map((gov) => (
+                        <option key={gov} value={gov}>{gov}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>المنطقة</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="اسم المنطقة"
+                      value={formData.area}
+                      onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label>أقرب نقطة دالة</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      placeholder="أقرب نقطة دالة"
+                      value={formData.nearestLandmark}
+                      onChange={(e) => setFormData({ ...formData, nearestLandmark: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>رقم الهاتف للاتصال والواتساب</label>
+                    <input 
+                      type="tel" 
+                      className="form-input" 
+                      placeholder="07701234567"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>تفاصيل ووصف الإعلان</label>
+                  <textarea 
+                    className="form-textarea" 
+                    rows={3}
+                    placeholder="وصف الإعلان..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <button type="button" className="action-btn" onClick={onClose}>
+                    إلغاء
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    <CheckCircle2 size={18} />
+                    <span>{editingListing ? 'حفظ التعديلات' : 'نشر الإعلان الآن'}</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
+
+          {/* نظام التعليقات المباشر */}
+          {editingListing && (
+            <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '2px solid var(--fb-divider)' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <MessageSquare size={20} color="#1877F2" />
+                <span>قسم التعليقات والاستفسارات المباشرة ({editingListing.comments?.length || 0})</span>
+              </h4>
+
+              <form onSubmit={handleSendComment} style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                <img 
+                  src={currentUser.avatar} 
+                  alt={currentUser.name} 
+                  style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }} 
+                />
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="اكتب تعليقاً أو استفساراً للبائع..." 
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button type="submit" className="btn-primary">
+                  <Send size={16} />
+                  <span>إرسال</span>
+                </button>
+              </form>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '250px', overflowY: 'auto' }}>
+                {(!editingListing.comments || editingListing.comments.length === 0) ? (
+                  <div style={{ color: 'var(--fb-text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>
+                    لا توجد تعليقات بعد. كن أول من يعلق على هذا الإعلان!
+                  </div>
+                ) : (
+                  editingListing.comments.map((comment) => (
+                    <div 
+                      key={comment.id}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'flex-start', 
+                        justifyContent: 'space-between',
+                        backgroundColor: 'var(--fb-bg-light)', 
+                        padding: '10px 14px', 
+                        borderRadius: '12px' 
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <img 
+                          src={comment.userAvatar} 
+                          alt={comment.userName} 
+                          style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', marginTop: '2px' }} 
+                        />
+                        <div>
+                          <div style={{ fontWeight: '800', fontSize: '0.88rem' }}>{comment.userName}</div>
+                          <div style={{ fontSize: '0.9rem', color: 'var(--fb-text-primary)', marginTop: '2px' }}>
+                            {comment.text}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--fb-text-secondary)', marginTop: '4px' }}>
+                            {new Date(comment.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {canDeleteComment(comment) && (
+                        <button 
+                          type="button" 
+                          onClick={() => onDeleteComment(editingListing.id, comment.id)}
+                          style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '4px' }}
+                          title="حذف التعليق"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

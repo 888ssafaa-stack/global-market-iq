@@ -1,0 +1,156 @@
+import React, { useState } from 'react';
+import { 
+  Settings, 
+  MapPin, 
+  Calendar, 
+  GraduationCap, 
+  Phone, 
+  Clock, 
+  Package, 
+  PlusCircle,
+  ShieldCheck,
+  UserCheck
+} from 'lucide-react';
+import ListingCard from './ListingCard';
+import ProfileSettingsModal from './ProfileSettingsModal';
+
+export default function ProfileView({
+  user,
+  onUpdateUser,
+  listings,
+  currentUser,
+  onLike,
+  onEditListing,
+  onDeleteListing,
+  onToggleDisable,
+  onManagePhotos,
+  onOpenCreateModal
+}) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // تصفية الإعلانات الخاصة بهذا الملف الشخصي
+  const userListings = listings.filter((l) => l.userId === user?.id);
+
+  return (
+    <div>
+      {/* غطاء الصفحة والملف الشخصي المماثل لفيسبوك */}
+      <div className="profile-container">
+        <div className="profile-cover">
+          <img src={user.cover} alt="غلاف الملف الشخصي" />
+        </div>
+
+        <div className="profile-header-content">
+          <div className="profile-avatar-wrapper">
+            <img src={user.avatar} alt={user.name} className="profile-avatar-img" />
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                className="btn-primary" 
+                onClick={() => setIsEditModalOpen(true)}
+                style={{ backgroundColor: 'var(--fb-bg-light)', color: 'var(--fb-text-primary)', border: '1px solid var(--fb-divider)' }}
+              >
+                <Settings size={18} />
+                <span>إعدادات الملف الشخصي</span>
+              </button>
+
+              <button className="btn-primary" onClick={onOpenCreateModal}>
+                <PlusCircle size={18} />
+                <span>إضافة إعلان جديد</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="profile-details">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h2 className="profile-name">{user.name}</h2>
+              {user.role === 'APP_OWNER' ? (
+                <span className="role-badge-btn owner-mode" style={{ fontSize: '0.8rem', padding: '2px 10px' }}>
+                  <ShieldCheck size={14} /> مالك التطبيق
+                </span>
+              ) : (
+                <span className="role-badge-btn user-mode" style={{ fontSize: '0.8rem', padding: '2px 10px' }}>
+                  <UserCheck size={14} /> صاحب الصفحة
+                </span>
+              )}
+            </div>
+
+            <p className="profile-bio">{user.bio || 'لا توجد نبذة تعريفية مضافة بعد.'}</p>
+          </div>
+
+          {/* شبكة البيانات الشخصية المماثلة لإعدادات فيسبوك */}
+          <div className="profile-meta-grid">
+            <div className="meta-item">
+              <MapPin size={18} color="#1877F2" />
+              <span>الإقامة: <strong>{user.governorate} - {user.area}</strong></span>
+            </div>
+
+            <div className="meta-item">
+              <Calendar size={18} color="#F59E0B" />
+              <span>المواليد / تاريخ الميلاد: <strong>{user.birthDate || 'غير محدد'}</strong></span>
+            </div>
+
+            <div className="meta-item">
+              <GraduationCap size={18} color="#8B5CF6" />
+              <span>الدراسة: <strong>{user.education || 'غير محدد'}</strong></span>
+            </div>
+
+            <div className="meta-item">
+              <Phone size={18} color="#10B981" />
+              <span>الهاتف: <strong>{user.phone}</strong></span>
+            </div>
+
+            <div className="meta-item">
+              <Clock size={18} color="#6B7280" />
+              <span>تاريخ الانضمام: <strong>{user.joinedDate}</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* قسم الإعلانات الخاصة بهذا الحساب */}
+      <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h3 style={{ fontSize: '1.3rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Package size={22} color="#1877F2" />
+          <span>قسم الإعلانات الخاصة بي ({userListings.length})</span>
+        </h3>
+      </div>
+
+      {userListings.length === 0 ? (
+        <div className="empty-state">
+          <Package className="empty-state-icon" />
+          <h3>لا توجد إعلانات منشورة في صفحتك الشخصية حتى الآن</h3>
+          <p style={{ color: 'var(--fb-text-secondary)', marginTop: '6px', marginBottom: '16px' }}>
+            يمكنك نشر أول إعلان لك الآن في أي من الأقسام الـ 11 المتاحة.
+          </p>
+          <button className="btn-primary" onClick={onOpenCreateModal} style={{ margin: '0 auto' }}>
+            <PlusCircle size={18} />
+            <span>نشر إعلان جديد</span>
+          </button>
+        </div>
+      ) : (
+        <div className="listings-grid">
+          {userListings.map((listing) => (
+            <ListingCard 
+              key={listing?.id}
+              listing={listing}
+              currentUser={currentUser}
+              onLike={onLike}
+              onEdit={onEditListing}
+              onDelete={onDeleteListing}
+              onToggleDisable={onToggleDisable}
+              onManagePhotos={onManagePhotos}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* نافذة تعديل إعدادات الحساب */}
+      <ProfileSettingsModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        user={user}
+        onSave={onUpdateUser}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1068894096179",
+    "project_id": "global-market-3dcd7",
+    "storage_bucket": "global-market-3dcd7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1068894096179:android:f61fa26d5e1e8e95334c46",
+        "android_client_info": {
+          "package_name": "com.globalmarket.iq"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaEfaao2Eqxvc73Kzok-mQsZE5PZHT9bA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,499 @@
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from './context/AuthContext.jsx';
+import Navbar from './components/Navbar';
+import CategoryBar from './components/CategoryBar';
+import ListingCard from './components/ListingCard';
+import ListingModal from './components/ListingModal';
+import ProfileView from './components/ProfileView';
+import AdminDashboard from './components/AdminDashboard';
+import AuthModal from './components/AuthModal';
+import TosModal from './components/TosModal';
+import { 
+  CATEGORIES, 
+  GOVERNORATES, 
+  INITIAL_USER, 
+  MOCK_APP_OWNER, 
+  INITIAL_LISTINGS 
+} from './data/mockData';
+import { SlidersHorizontal, Store } from 'lucide-react';
+
+export default function App() {
+  const { user, login, logout } = useContext(AuthContext);
+
+  // 2. قائمة الإعلانات المحدثة (مع نظام التعليقات)
+  const [listings, setListings] = useState(() => {
+    const saved = localStorage.getItem('fb_market_listings');
+    if (saved) return JSON.parse(saved);
+    // إضافة تعليقات أولية افتراضية
+    return INITIAL_LISTINGS.map(item => ({
+      ...item,
+      comments: item.comments || [
+        {
+          id: 'c_1',
+          userId: 'user_200',
+          userName: 'حسن البغدادي',
+          userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
+          text: 'السعر مناسب جداً، هل يوجد مجال للمراواضة؟',
+          createdAt: new Date().toISOString()
+        }
+      ]
+    }));
+  });
+
+  // 3. قائمة الإشعارات المباشرة
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('fb_market_notifications');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'n_1',
+        targetUserId: 'user_101',
+        actorName: 'أحمد الكردي',
+        actorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
+        type: 'comment',
+        listingId: 'list_1',
+        listingTitle: 'فيلا مودرن للبيع في الجادرية',
+        text: 'هل البيت مسجل طابو صرف؟',
+        isRead: false,
+        createdAt: new Date().toISOString()
+      }
+    ];
+  });
+
+  // 4. التبويبات والفلاتر
+  const [activeTab, setActiveTab] = useState('market'); // 'market', 'profile', 'admin'
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [governorateFilter, setGovernorateFilter] = useState('ALL');
+  const [conditionFilter, setConditionFilter] = useState('ALL');
+
+  // 5. النوافذ المنبثقة (نافذة الإعلان، التسجيل، لاتفاقية الاستخدام الإجبارية)
+  const [isListingModalOpen, setIsListingModalOpen] = useState(false);
+  const [editingListing, setEditingListing] = useState(null);
+  const [onlyPhotosMode, setOnlyPhotosMode] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isTosModalOpen, setIsTosModalOpen] = useState(false);
+
+  // 6. الثيم الداكن والفاتح
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('fb_market_theme') === 'dark';
+  });
+
+  // التأكد من توقيع اتفاقية الاستخدام والتبرؤ المالي الإجبارية عند بداية الدخول أو تغيير الحساب
+  useEffect(() => {
+    const tosAccepted = localStorage.getItem(`fb_tos_accepted_${user?.id}`);
+    if (!tosAccepted) {
+      setIsTosModalOpen(true);
+    }
+  }, [user?.id]);
+
+  // مزامنة LocalStorage
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem('fb_market_theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  // AuthContext handles user persistence in localStorage
+
+  useEffect(() => {
+    localStorage.setItem('fb_market_listings', JSON.stringify(listings));
+  }, [listings]);
+
+  useEffect(() => {
+    localStorage.setItem('fb_market_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  // قبول اتفاقية الاستخدام والتبرؤ المالي
+  const handleAcceptTos = () => {
+    localStorage.setItem(`fb_tos_accepted_${user?.id}`, 'true');
+    setIsTosModalOpen(false);
+  };
+
+  // نجاح تسجيل الدخول بالبريد الإلكتروني
+  const handleLoginSuccess = (userObj) => {
+    login(userObj);
+    const tosAccepted = localStorage.getItem(`fb_tos_accepted_${userObj.id}`);
+    if (!tosAccepted) {
+      setIsTosModalOpen(true);
+    }
+  };
+
+  // التبديل بين المستخدِم العادي ومالك التطبيق
+  const handleToggleRole = () => {
+    if (user.role === 'APP_OWNER') {
+      login(INITIAL_USER);
+    } else {
+      login(MOCK_APP_OWNER);
+    }
+  };
+
+  // إضافة أو حفظ الإعلان
+  const handleSaveListing = (formData) => {
+    if (editingListing) {
+      setListings((prev) =>
+        prev.map((item) =>
+          item.id === editingListing.id
+            ? { ...item, ...formData }
+            : item
+        )
+      );
+    } else {
+      const newListing = {
+        id: `list_${Date.now()}`,
+        ...formData,
+        userId: user?.id,
+        userName: user.name,
+        userAvatar: user.avatar,
+        status: 'active',
+        likesCount: 0,
+        likedBy: [],
+        comments: [],
+        createdAt: new Date().toISOString()
+      };
+      setListings((prev) => [newListing, ...prev]);
+    }
+    setEditingListing(null);
+    setOnlyPhotosMode(false);
+  };
+
+  // فتح نافذة الإنشاء
+  const handleOpenCreateModal = () => {
+    setEditingListing(null);
+    setOnlyPhotosMode(false);
+    setIsListingModalOpen(true);
+  };
+
+  // فتح نافذة التعديل والتفاصيل
+  const handleOpenEditModal = (listing) => {
+    setEditingListing(listing);
+    setOnlyPhotosMode(false);
+    setIsListingModalOpen(true);
+  };
+
+  // فتح نافذة إدارة الصور
+  const handleOpenManagePhotosModal = (listing) => {
+    setEditingListing(listing);
+    setOnlyPhotosMode(true);
+    setIsListingModalOpen(true);
+  };
+
+  // حذف الإعلان
+  const handleDeleteListing = (id) => {
+    if (window.confirm('هل أنت تأكد من رغبتك في حذف هذا الإعلان بالكامل؟')) {
+      setListings((prev) => prev.filter((item) => item.id !== id));
+      if (editingListing && editingListing.id === id) {
+        setIsListingModalOpen(false);
+      }
+    }
+  };
+
+  // تعطيل أو تفعيل الإعلان
+  const handleToggleDisableListing = (id) => {
+    setListings((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const nextStatus = item.status === 'disabled' ? 'active' : 'disabled';
+          return { ...item, status: nextStatus };
+        }
+        return item;
+      })
+    );
+  };
+
+  // الإعجاب وتوليد إشعار فوري لصاحب الإعلان
+  const handleLikeListing = (id) => {
+    setListings((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const likedBy = item.likedBy || [];
+          const isLiked = likedBy.includes(user?.id);
+          const updatedLikedBy = isLiked
+            ? likedBy.filter((uId) => uId !== user?.id)
+            : [...likedBy, user?.id];
+
+          // توليد إشعار لصاحب الإعلان إذا لم يكن هو نَفسه من قام بالإعجاب
+          if (!isLiked && item.userId !== user?.id) {
+            const newNotif = {
+              id: `notif_${Date.now()}`,
+              targetUserId: item.userId,
+              actorName: user.name,
+              actorAvatar: user.avatar,
+              type: 'like',
+              listingId: item.id,
+              listingTitle: item.title,
+              isRead: false,
+              createdAt: new Date().toISOString()
+            };
+            setNotifications((nPrev) => [newNotif, ...nPrev]);
+          }
+
+          return {
+            ...item,
+            likedBy: updatedLikedBy,
+            likesCount: updatedLikedBy.length
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  // إضافة تعليق جديد وتوليد إشعار فوري لصاحب الإعلان
+  const handleAddComment = (listingId, text) => {
+    const newComment = {
+      id: `comm_${Date.now()}`,
+      userId: user?.id,
+      userName: user.name,
+      userAvatar: user.avatar,
+      text,
+      createdAt: new Date().toISOString()
+    };
+
+    setListings((prev) =>
+      prev.map((item) => {
+        if (item.id === listingId) {
+          const updatedComments = [...(item.comments || []), newComment];
+          
+          // توليد إشعار فوري لصاحب الإعلان
+          if (item.userId !== user?.id) {
+            const newNotif = {
+              id: `notif_${Date.now()}`,
+              targetUserId: item.userId,
+              actorName: user.name,
+              actorAvatar: user.avatar,
+              type: 'comment',
+              listingId: item.id,
+              listingTitle: item.title,
+              text,
+              isRead: false,
+              createdAt: new Date().toISOString()
+            };
+            setNotifications((nPrev) => [newNotif, ...nPrev]);
+          }
+
+          const updatedListing = { ...item, comments: updatedComments };
+          if (editingListing && editingListing.id === listingId) {
+            setEditingListing(updatedListing);
+          }
+          return updatedListing;
+        }
+        return item;
+      })
+    );
+  };
+
+  // حذف تعليق
+  const handleDeleteComment = (listingId, commentId) => {
+    setListings((prev) =>
+      prev.map((item) => {
+        if (item.id === listingId) {
+          const updatedComments = (item.comments || []).filter(c => c.id !== commentId);
+          const updatedListing = { ...item, comments: updatedComments };
+          if (editingListing && editingListing.id === listingId) {
+            setEditingListing(updatedListing);
+          }
+          return updatedListing;
+        }
+        return item;
+      })
+    );
+  };
+
+  // تعليم الإشعارات كـ "مقروءة"
+  const handleMarkNotificationsRead = (userId) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.targetUserId === userId ? { ...n, isRead: true } : n))
+    );
+  };
+
+  // تحديث إعدادات المستخدِم
+  const handleUpdateUser = (updatedData) => {
+    const updatedUser = { ...user, ...updatedData };
+    login(updatedUser);
+  };
+
+  // تصفية الإعلانات في السوق العام
+  const filteredListings = listings.filter((item) => {
+    if (item.status === 'disabled') {
+      const isOwner = user?.id === item.userId;
+      const isAppOwner = user.role === 'APP_OWNER';
+      if (!isOwner && !isAppOwner) return false;
+    }
+
+    if (selectedCategory !== 'ALL' && item.category !== selectedCategory) {
+      return false;
+    }
+
+    if (governorateFilter !== 'ALL' && item.governorate !== governorateFilter) {
+      return false;
+    }
+
+    if (conditionFilter !== 'ALL' && item.condition !== conditionFilter) {
+      return false;
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchTitle = item.title.toLowerCase().includes(query);
+      const matchDesc = item.description.toLowerCase().includes(query);
+      const matchArea = item.area.toLowerCase().includes(query);
+      const matchGov = item.governorate.toLowerCase().includes(query);
+      const matchUser = item.userName.toLowerCase().includes(query);
+      if (!matchTitle && !matchDesc && !matchArea && !matchGov && !matchUser) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  return (
+    <div className="app-container">
+      {/* شريط التنقل العلوي */}
+      <Navbar 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onToggleRole={handleToggleRole}
+        onOpenCreateModal={handleOpenCreateModal}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        notifications={notifications}
+        onMarkNotificationsRead={handleMarkNotificationsRead}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+      />
+
+      <main className="main-content">
+        {/* شريط الأقسام الـ 11 والفلترة بالسوق العام */}
+        {activeTab === 'market' && (
+          <>
+            <CategoryBar 
+              categories={CATEGORIES}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+            />
+
+            <div className="filter-bar">
+              <div className="filter-group">
+                <SlidersHorizontal size={18} color="var(--fb-text-secondary)" />
+                <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>تصفية حسب:</span>
+
+                <select 
+                  className="select-control"
+                  value={governorateFilter}
+                  onChange={(e) => setGovernorateFilter(e.target.value)}
+                >
+                  <option value="ALL">كل المحافظات</option>
+                  {GOVERNORATES.map((gov) => (
+                    <option key={gov} value={gov}>{gov}</option>
+                  ))}
+                </select>
+
+                <select 
+                  className="select-control"
+                  value={conditionFilter}
+                  onChange={(e) => setConditionFilter(e.target.value)}
+                >
+                  <option value="ALL">جديد ومستخدم</option>
+                  <option value="جديد">جديد فقط</option>
+                  <option value="مستخدم">مستخدم فقط</option>
+                </select>
+              </div>
+
+              <div style={{ fontSize: '0.9rem', color: 'var(--fb-text-secondary)', fontWeight: '700' }}>
+                عدد الإعلانات المعروضة: {filteredListings.length} إعلان
+              </div>
+            </div>
+
+            {filteredListings.length === 0 ? (
+              <div className="empty-state">
+                <Store className="empty-state-icon" />
+                <h3>لا توجد إعلانات مطابقة للبحث أو الفلتر المحدد</h3>
+                <button 
+                  className="btn-primary" 
+                  onClick={() => {
+                    setSelectedCategory('ALL');
+                    setGovernorateFilter('ALL');
+                    setConditionFilter('ALL');
+                    setSearchQuery('');
+                  }}
+                  style={{ margin: '16px auto 0 auto' }}
+                >
+                  إعادة ضبط البحث والفلاتر
+                </button>
+              </div>
+            ) : (
+              <div className="listings-grid">
+                {filteredListings.map((listing) => (
+                  <ListingCard 
+                    key={listing?.id}
+                    listing={listing}
+                    currentUser={user}
+                    onLike={handleLikeListing}
+                    onEdit={handleOpenEditModal}
+                    onDelete={handleDeleteListing}
+                    onToggleDisable={handleToggleDisableListing}
+                    onManagePhotos={handleOpenManagePhotosModal}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* القسم الخاص: الصفحة الشخصية وإعداداتها وإعلاناتها */}
+        {activeTab === 'profile' && (
+          <ProfileView 
+            user={user}
+            onUpdateUser={handleUpdateUser}
+            listings={listings}
+            onLike={handleLikeListing}
+            onEditListing={handleOpenEditModal}
+            onDeleteListing={handleDeleteListing}
+            onToggleDisable={handleToggleDisableListing}
+            onManagePhotos={handleOpenManagePhotosModal}
+            onOpenCreateModal={handleOpenCreateModal}
+          />
+        )}
+
+        {/* لوحة تحكم مالك التطبيق (Admin Dashboard) */}
+        {activeTab === 'admin' && (
+          <AdminDashboard 
+            listings={listings}
+            user={user}
+            onLike={handleLikeListing}
+            onEditListing={handleOpenEditModal}
+            onDeleteListing={handleDeleteListing}
+            onToggleDisable={handleToggleDisableListing}
+            onManagePhotos={handleOpenManagePhotosModal}
+          />
+        )}
+      </main>
+
+      {/* 1. نافذة الإعلان والتعليقات وإدارة الصور */}
+      <ListingModal 
+        isOpen={isListingModalOpen}
+        onClose={() => setIsListingModalOpen(false)}
+        onSubmit={handleSaveListing}
+        editingListing={editingListing}
+        currentUser={user}
+        onlyPhotosMode={onlyPhotosMode}
+        onAddComment={handleAddComment}
+        onDeleteComment={handleDeleteComment}
+      />
+
+      {/* 2. نافذة تسجيل الدخول بالبريد الإلكتروني */}
+      <AuthModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* 3. نافذة اتفاقية الاستخدام والتبرؤ المالي الإجبارية */}
+      <TosModal 
+        isOpen={isTosModalOpen}
+        onAccept={handleAcceptTos}
+      />
+    </div>
+  );
+}

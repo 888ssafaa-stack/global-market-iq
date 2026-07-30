@@ -1,0 +1,22 @@
+{
+  "appId": "com.globalmarket.iq",
+  "appName": "Global Market IQ",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://global-market-iq.vercel.app",
+    "cleartext": true
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#1877F2"
+    },
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
+}

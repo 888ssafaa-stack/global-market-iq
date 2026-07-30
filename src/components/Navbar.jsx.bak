@@ -1,0 +1,246 @@
+import React, { useState, useContext } from 'react';
+import { 
+  Store, 
+  Search, 
+  UserCheck, 
+  ShieldCheck, 
+  PlusCircle, 
+  Moon, 
+  Sun,
+  Bell,
+  LogIn,
+  Check,
+  MessageSquare,
+  ThumbsUp,
+  X
+} from 'lucide-react';
+import { AuthContext } from '../context/AuthContext.jsx';
+
+export default function Navbar({
+  activeTab,
+  setActiveTab,
+  searchQuery,
+  setSearchQuery,
+  onToggleRole,
+  onOpenCreateModal,
+  darkMode,
+  setDarkMode,
+  notifications,
+  onMarkNotificationsRead,
+  onOpenAuthModal
+}) {
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { user } = useContext(AuthContext);
+  const isAppOwner = user.role === 'APP_OWNER';
+  // الإشعارات الخاصة بالمستخدم الحالي
+  const myNotifications = notifications.filter(n => n.targetUserId === user?.id);
+  const unreadCount = myNotifications.filter(n => !n.isRead).length;
+  const handleToggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications && unreadCount > 0) {
+      onMarkNotificationsRead(user?.id);
+    }
+  };
+
+  return (
+    <header className="navbar">
+      {/* جهة اليسار: الشعار والبحث */}
+      <div className="nav-left">
+        <button 
+          className="logo-btn" 
+          onClick={() => setActiveTab('market')}
+          title="السوق العالمي (Global Market) - الصفحة الرئيسية"
+        >
+          <div className="logo-icon">ع</div>
+          <span style={{ fontSize: '1.2rem', fontWeight: '800' }}>السوق العالمي (Global Market)</span>
+        </button>
+
+        <div className="nav-search">
+          <Search className="nav-search-icon" size={18} />
+          <input 
+            type="text" 
+            placeholder="بحث في كل الإعلانات..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* الوسط: التبويبات الرئيسية */}
+      <div className="nav-center">
+        <button 
+          className={`nav-tab ${activeTab === 'market' ? 'active' : ''}`}
+          onClick={() => setActiveTab('market')}
+        >
+          <Store size={22} />
+          <span>السوق العام</span>
+        </button>
+
+        <button 
+          className={`nav-tab ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profile')}
+        >
+          <UserCheck size={22} />
+          <span>صفحتي الشخصية</span>
+        </button>
+
+        {isAppOwner && (
+          <button 
+            className={`nav-tab ${activeTab === 'admin' ? 'active' : ''}`}
+            onClick={() => setActiveTab('admin')}
+            style={{ color: isAppOwner ? '#DC2626' : undefined }}
+          >
+            <ShieldCheck size={22} />
+            <span>لوحة مالك التطبيق</span>
+          </button>
+        )}
+      </div>
+
+      {/* جهة اليمين: زر النشر + الجرس + تسجيل الدخول + الثيم */}
+      <div className="nav-right" style={{ position: 'relative' }}>
+        {/* مفتاح دور مالك التطبيق */}
+        <button 
+          className={`role-badge-btn ${isAppOwner ? 'owner-mode' : 'user-mode'}`}
+          onClick={onToggleRole}
+          title="اضغط للتبديل بين مستخدم ومالك التطبيق"
+        >
+          <ShieldCheck size={16} />
+          <span>{isAppOwner ? 'مالك التطبيق' : 'مستخدِم'}</span>
+        </button>
+
+        {/* زر إضافة إعلان جديد */}
+        <button className="btn-primary" onClick={onOpenCreateModal}>
+          <PlusCircle size={18} />
+          <span>نشر إعلان</span>
+        </button>
+
+        {/* جرس الإشعارات المباشرة */}
+        <div style={{ position: 'relative' }}>
+          <button 
+            className="modal-close-btn"
+            onClick={handleToggleNotifications}
+            title="الإشعارات المباشرة"
+            style={{ position: 'relative' }}
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span 
+                style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-2px',
+                  backgroundColor: '#EF4444',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '18px',
+                  height: '18px',
+                  fontSize: '0.72rem',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.4)'
+                }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* قائمة الإشعارات المنبثقة */}
+          {showNotifications && (
+            <div 
+              style={{
+                position: 'absolute',
+                top: '48px',
+                left: '0',
+                width: '320px',
+                backgroundColor: 'var(--fb-card-bg)',
+                borderRadius: '12px',
+                boxShadow: 'var(--fb-shadow-lg)',
+                border: '1px solid var(--fb-divider)',
+                zIndex: 1000,
+                padding: '12px',
+                maxHeight: '380px',
+                overflowY: 'auto'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', paddingBottom: '6px', borderBottom: '1px solid var(--fb-divider)' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: '800' }}>الإشعارات والتفاعلات</h4>
+                <button 
+                  onClick={() => setShowNotifications(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fb-text-secondary)' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {myNotifications.length === 0 ? (
+                <div style={{ padding: '20px 10px', textAlign: 'center', color: 'var(--fb-text-secondary)', fontSize: '0.85rem' }}>
+                  لا توجد إشعارات جديدة حتى الآن.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {myNotifications.map((notif) => (
+                    <div 
+                      key={notif.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        backgroundColor: notif.isRead ? 'transparent' : 'var(--fb-blue-light)',
+                        fontSize: '0.85rem'
+                      }}
+                    >
+                      <img 
+                        src={notif.actorAvatar} 
+                        alt={notif.actorName} 
+                        style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '700' }}>{notif.actorName}</div>
+                        <div style={{ color: 'var(--fb-text-primary)' }}>
+                          {notif.type === 'comment' ? 'علق على إعلانك: ' : 'أعجب بإعلانك: '} 
+                          <strong>"{notif.listingTitle}"</strong>
+                        </div>
+                        {notif.text && (
+                          <div style={{ color: 'var(--fb-text-secondary)', fontStyle: 'italic', marginTop: '2px', fontSize: '0.8rem' }}>
+                            "{notif.text}"
+                          </div>
+                        )}
+                        <div style={{ fontSize: '0.7rem', color: 'var(--fb-text-secondary)', marginTop: '4px' }}>
+                          {new Date(notif.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* زر التبديل بين الوضع الداكن والفاتح */}
+        <button 
+          className="modal-close-btn"
+          onClick={() => setDarkMode(!darkMode)}
+          title="تبديل الثيم"
+        >
+          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
+        {/* زر تسجيل الدخول / حساب المستخدم */}
+        <div 
+          className="user-avatar-chip"
+          onClick={onOpenAuthModal}
+          title="تسجيل الدخول أو تغيير الحساب"
+        >
+          <img src={user.avatar} alt={user.name} />
+          <span style={{ fontWeight: '700', fontSize: '0.85rem' }}>{user.name}</span>
+        </div>
+      </div>
+    </header>
+  );
+}

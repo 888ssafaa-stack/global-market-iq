@@ -1,0 +1,173 @@
+import React, { useState } from 'react';
+import { 
+  ShieldCheck, 
+  Package, 
+  CheckCircle, 
+  Power, 
+  Trash2, 
+  Edit3, 
+  Users, 
+  BarChart3, 
+  Search,
+  SlidersHorizontal,
+  ImagePlus
+} from 'lucide-react';
+import ListingCard from './ListingCard';
+
+export default function AdminDashboard({
+  listings,
+  currentUser,
+  onLike,
+  onEditListing,
+  onDeleteListing,
+  onToggleDisable,
+  onManagePhotos
+}) {
+  const [adminSearch, setAdminSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  const totalListings = listings.length;
+  const activeListings = listings.filter((l) => l.status === 'active').length;
+  const disabledListings = listings.filter((l) => l.status === 'disabled').length;
+  const totalLikes = listings.reduce((sum, l) => sum + (l.likesCount || 0), 0);
+
+  const filteredListings = listings.filter((l) => {
+    const matchesSearch = l.title.toLowerCase().includes(adminSearch.toLowerCase()) ||
+                          l.userName.toLowerCase().includes(adminSearch.toLowerCase()) ||
+                          l.governorate.includes(adminSearch) ||
+                          l.category.includes(adminSearch);
+
+    const matchesStatus = statusFilter === 'ALL' || l.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* رأس لوحة تحكم مالك التطبيق */}
+      <div 
+        style={{ 
+          backgroundColor: 'var(--fb-card-bg)', 
+          padding: '20px', 
+          borderRadius: 'var(--fb-radius-lg)',
+          border: '1px solid var(--fb-divider)',
+          boxShadow: 'var(--fb-shadow)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '12px', borderRadius: '50%' }}>
+            <ShieldCheck size={32} />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: '800' }}>لوحة مالك التطبيق (App Owner Admin)</h2>
+            <p style={{ color: 'var(--fb-text-secondary)', fontSize: '0.9rem' }}>
+              تمتلك صلاحيات عامة وشاملة لإدارة وتعديل وحذف وتفعيل وتنشيط أي إعلان داخل المنصة.
+            </p>
+          </div>
+        </div>
+
+        <div className="role-badge-btn owner-mode" style={{ fontSize: '0.9rem', padding: '8px 18px' }}>
+          <ShieldCheck size={18} />
+          <span>الصلاحيات العامة مفعّلة</span>
+        </div>
+      </div>
+
+      {/* بطاقات الإحصائيات الشاملة */}
+      <div className="admin-stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon-wrapper" style={{ background: '#E0F2FE', color: '#0284C7' }}>
+            <Package size={24} />
+          </div>
+          <div>
+            <div className="stat-val">{totalListings}</div>
+            <div className="stat-lbl">إجمالي الإعلانات في المنصة</div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon-wrapper" style={{ background: '#D1FAE5', color: '#059669' }}>
+            <CheckCircle size={24} />
+          </div>
+          <div>
+            <div className="stat-val">{activeListings}</div>
+            <div className="stat-lbl">إعلانات نشطة ومتاحة</div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon-wrapper" style={{ background: '#FEE2E2', color: '#DC2626' }}>
+            <Power size={24} />
+          </div>
+          <div>
+            <div className="stat-val">{disabledListings}</div>
+            <div className="stat-lbl">إعلانات معطلة</div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon-wrapper" style={{ background: '#FEF3C7', color: '#D97706' }}>
+            <BarChart3 size={24} />
+          </div>
+          <div>
+            <div className="stat-val">{totalLikes}</div>
+            <div className="stat-lbl">إجمالي التفاعلات والإعجابات</div>
+          </div>
+        </div>
+      </div>
+
+      {/* شريط التحكم السريع في الإعلانات */}
+      <div className="filter-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '240px' }}>
+          <Search size={18} color="var(--fb-text-secondary)" />
+          <input 
+            type="text" 
+            className="form-input" 
+            placeholder="بحث أدمن في كافة الإعلانات، المحافظات، والمستخدِمين..."
+            value={adminSearch}
+            onChange={(e) => setAdminSearch(e.target.value)}
+            style={{ width: '100%' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <SlidersHorizontal size={18} color="var(--fb-text-secondary)" />
+          <select 
+            className="select-control"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="ALL">عرض الكل (نشط ومعطل)</option>
+            <option value="active">النشطة فقط</option>
+            <option value="disabled">المعطلة فقط</option>
+          </select>
+        </div>
+      </div>
+
+      {/* شبكة الإعلانات الشاملة تحت الصلاحيات العامة لمالك التطبيق */}
+      {filteredListings.length === 0 ? (
+        <div className="empty-state">
+          <h3>لا توجد إعلانات مطابقة للبحث الإداري</h3>
+        </div>
+      ) : (
+        <div className="listings-grid">
+          {filteredListings.map((listing) => (
+            <ListingCard 
+              key={listing.id}
+              listing={listing}
+              currentUser={currentUser}
+              onLike={onLike}
+              onEdit={onEditListing}
+              onDelete={onDeleteListing}
+              onToggleDisable={onToggleDisable}
+              onManagePhotos={onManagePhotos}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
