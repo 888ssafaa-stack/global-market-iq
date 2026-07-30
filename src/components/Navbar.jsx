@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { 
   Store, 
   Search, 
@@ -14,11 +14,8 @@ import {
   ThumbsUp,
   X,
   Handshake,
-  Smartphone,
   Flame,
   Tag,
-  Download,
-  CheckCircle2,
   Users,
   Radio
 } from 'lucide-react';
@@ -46,36 +43,15 @@ export default function Navbar({
   onNotificationClick
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [searchScope, setSearchScope] = useState(userSearchQuery?.trim() ? 'users' : 'listings');
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
   const { user } = useContext(AuthContext);
 
-  useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstallApp = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setDeferredPrompt(null);
-      }
-    } else {
-      alert('📲 كيف تقوم بتثبيت تطبيق السوق العالمي على هاتفك:\n\n1️⃣ على أجهزة الآيفون (iOS/Safari):\nاضغط زر المشاركة (Share ⬆️) أسفل الشاشة ثم اختر "إضافة إلى الشاشة الرئيسية" (Add to Home Screen ➕).\n\n2️⃣ على أجهزة الاندرويد (Android/Chrome):\nاضغط قائمة المتصفح (⋮) أعلى اليسار ثم اختر "تثبيت التطبيق" (Install App) أو "إضافة إلى الشاشة الرئيسية".');
-    }
-  };
   const isAppOwner = Boolean(
     user?.role === 'APP_OWNER' || 
     (user?.email && user.email.toLowerCase() === '888ssafaa@gmail.com')
   );
-  // الإشعارات الخاصة بالمستخدم الحالي (مطابقة شمولية بدقة كافة المعرفات والبريد والاسم)
+
+  // الإشعارات الخاصة بالمستخدم الحالي
   const uId = String(user?.id || '').toLowerCase().trim();
   const uEmail = String(user?.email || '').toLowerCase().trim();
   const uName = String(user?.name || '').toLowerCase().trim();
@@ -99,7 +75,7 @@ export default function Navbar({
   });
   const unreadCount = myNotifications.filter(n => !n.isRead).length;
 
-  // قراءة الصورة الشخصية من localStorage مباشرة (تبقى بعد Refresh)
+  // قراءة الصورة الشخصية من localStorage مباشرة
   const localAvatar = user?.id
     ? localStorage.getItem(`gm_avatar_${user.id}`) || user?.avatar
     : user?.avatar;
@@ -118,85 +94,90 @@ export default function Navbar({
         <button 
           className="logo-btn" 
           onClick={() => setActiveTab('market')}
-          title="السوق العالمي (Global Market) - الصفحة الرئيسية"
+          title="الصفحة الرئيسية للسوق العالمي"
         >
-          <div className="logo-icon">ع</div>
-          <span style={{ fontSize: '1.2rem', fontWeight: '800' }}>السوق العالمي (Global Market)</span>
+          <div className="logo-icon">
+            <Store size={22} color="#ffffff" />
+          </div>
+          <div className="logo-text-container">
+            <span className="logo-text">السوق العالمي</span>
+            <span className="logo-subtext">Global Market IQ</span>
+          </div>
         </button>
 
-        {/* 🔍 مستطيل البحث الموحد المزود بقائمة اختيار نطاق البحث (إعلانات / مستخدمين) */}
-        <div className="nav-search" style={{ 
-          border: searchScope === 'users' ? '1.5px solid #7C3AED' : '1.5px solid #1877F2', 
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          padding: '0 8px',
-          background: 'var(--fb-input-bg)'
-        }}>
-          {searchScope === 'users' ? (
-            <Users className="nav-search-icon" size={18} color="#7C3AED" />
+        {/* 🔍 شريط البحث الذكي المزدوج (المنتجات + المستخدمون) */}
+        <div className="search-bar-unified" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          {/* محول نطاق البحث: إعلانات أو مستخدمون */}
+          <div style={{ display: 'flex', background: 'var(--fb-input-bg)', borderRadius: '8px', padding: '2px', marginLeft: '6px' }}>
+            <button
+              type="button"
+              onClick={() => { setSearchScope('listings'); setUserSearchQuery(''); }}
+              style={{
+                border: 'none',
+                background: searchScope === 'listings' ? '#1877F2' : 'transparent',
+                color: searchScope === 'listings' ? '#ffffff' : 'var(--fb-text-secondary)',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              إعلانات
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setSearchScope('users'); setSearchQuery(''); }}
+              style={{
+                border: 'none',
+                background: searchScope === 'users' ? '#10B981' : 'transparent',
+                color: searchScope === 'users' ? '#ffffff' : 'var(--fb-text-secondary)',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              مستخدمون 👥
+            </button>
+          </div>
+
+          <Search className="search-icon" size={18} />
+
+          {searchScope === 'listings' ? (
+            <input 
+              type="text" 
+              placeholder="ابحث عن سيارات، عقارات، هواتف..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
           ) : (
-            <Search className="nav-search-icon" size={18} color="#1877F2" />
+            <input 
+              type="text" 
+              placeholder="ابحث باسم المستخدم أو التخصص..." 
+              value={userSearchQuery}
+              onChange={(e) => setUserSearchQuery(e.target.value)}
+              className="search-input"
+              style={{ borderColor: '#10B981' }}
+            />
           )}
 
-          <select
-            value={searchScope}
-            onChange={(e) => {
-              const scope = e.target.value;
-              setSearchScope(scope);
-              if (scope === 'users') {
-                setUserSearchQuery(searchQuery || userSearchQuery);
+          {((searchScope === 'listings' && searchQuery) || (searchScope === 'users' && userSearchQuery)) && (
+            <button 
+              className="clear-search-btn"
+              onClick={() => {
                 setSearchQuery('');
-              } else {
-                setSearchQuery(userSearchQuery || searchQuery);
                 setUserSearchQuery('');
-              }
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              borderLeft: '1px solid var(--fb-divider)',
-              paddingLeft: '6px',
-              fontWeight: '800',
-              fontSize: '0.85rem',
-              color: searchScope === 'users' ? '#7C3AED' : '#1877F2',
-              cursor: 'pointer',
-              outline: 'none',
-              fontFamily: 'inherit'
-            }}
-            title="اختر نطاق البحث: بحث عن إعلان أو بحث عن مستخدم"
-          >
-            <option value="listings">🛍️ إعلانات</option>
-            <option value="users">👥 مستخدمين</option>
-          </select>
-
-          <input 
-            type="text" 
-            placeholder={searchScope === 'users' ? 'بحث عن مشترك أو صاحب حساب...' : 'بحث عن إعلان أو منتج...'} 
-            value={searchScope === 'users' ? userSearchQuery : searchQuery}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (searchScope === 'users') {
-                setUserSearchQuery(val);
-                setSearchQuery('');
-              } else {
-                setSearchQuery(val);
-                setUserSearchQuery('');
-              }
-            }}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              outline: 'none',
-              padding: '8px 4px',
-              fontSize: '0.88rem',
-              fontWeight: '600',
-              color: 'var(--fb-text-primary)',
-              width: '190px',
-              fontFamily: 'inherit'
-            }}
-          />
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -281,23 +262,6 @@ export default function Navbar({
           </span>
         )}
 
-        {/* 📲 زر تثبيت وتنزيل تطبيق الأندرويد APK */}
-        <button 
-          className="btn-primary"
-          onClick={() => setIsInstallModalOpen(true)}
-          style={{
-            background: 'linear-gradient(135deg, #10B981, #059669)',
-            color: '#ffffff',
-            border: 'none',
-            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
-            fontWeight: '800'
-          }}
-          title="تثبيت وتنزيل تطبيق السوق العالمي (APK) على هاتفك الأندرويد"
-        >
-          <Download size={18} />
-          <span>تثبيت التطبيق 📲 (APK)</span>
-        </button>
-
         {/* 📡 زر البث المباشر الفوري */}
         <button 
           className="btn-primary" 
@@ -354,7 +318,7 @@ export default function Navbar({
             )}
           </button>
 
-          {/* قائمة الإشعارات المنبثقة */}
+          {/* قائمة الإشعارات المنسدلة */}
           {showNotifications && (
             <div 
               style={{
@@ -362,39 +326,46 @@ export default function Navbar({
                 top: '48px',
                 left: '0',
                 width: '320px',
-                backgroundColor: 'var(--fb-card-bg)',
+                maxHeight: '400px',
+                backgroundColor: 'var(--fb-surface)',
                 borderRadius: '12px',
-                boxShadow: 'var(--fb-shadow-lg)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
                 border: '1px solid var(--fb-divider)',
                 zIndex: 1000,
-                padding: '12px',
-                maxHeight: '380px',
-                overflowY: 'auto'
+                overflowY: 'auto',
+                padding: '12px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', paddingBottom: '6px', borderBottom: '1px solid var(--fb-divider)' }}>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: '800' }}>الإشعارات والتفاعلات</h4>
-                <button 
-                  onClick={() => setShowNotifications(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--fb-text-secondary)' }}
-                >
-                  <X size={16} />
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid var(--fb-divider)' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>الإشعارات ({unreadCount})</h4>
+                {onSendTestNotification && (
+                  <button
+                    type="button"
+                    onClick={() => onSendTestNotification(user?.id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#10B981',
+                      fontSize: '0.75rem',
+                      fontWeight: '700',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + تجربة إشعار
+                  </button>
+                )}
               </div>
 
               {myNotifications.length === 0 ? (
-                <div style={{ padding: '20px 10px', textAlign: 'center', color: 'var(--fb-text-secondary)', fontSize: '0.85rem' }}>
-                  لا توجد إشعارات جديدة حتى الآن.
+                <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--fb-text-secondary)', fontSize: '0.85rem' }}>
+                  لا توجد إشعارات حالياً
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {myNotifications.map((notif) => (
                     <div 
                       key={notif.id}
-                      onClick={() => {
-                        setShowNotifications(false);
-                        if (onNotificationClick) onNotificationClick(notif);
-                      }}
+                      onClick={() => onNotificationClick && onNotificationClick(notif)}
                       style={{
                         display: 'flex',
                         alignItems: 'flex-start',
@@ -506,79 +477,6 @@ export default function Navbar({
           <span style={{ fontWeight: '700', fontSize: '0.85rem' }}>{user?.name}</span>
         </div>
       </div>
-
-      {/* 📲 نافذة اختيار طريقة تثبيت وتنزيل التطبيق المباشرة */}
-      {isInstallModalOpen && (
-        <div className="modal-overlay" style={{ zIndex: 2000 }}>
-          <div className="modal-content" style={{ maxWidth: '520px', borderRadius: '20px' }}>
-            <div className="modal-header" style={{ background: 'linear-gradient(135deg, #10B981, #059669)', color: '#fff', borderRadius: '20px 20px 0 0' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontSize: '1.2rem', fontWeight: '800' }}>
-                <Smartphone size={22} />
-                <span>تثبيت وتنزيل تطبيق السوق العالمي 📲</span>
-              </h3>
-              <button className="modal-close-btn" onClick={() => setIsInstallModalOpen(false)} style={{ color: '#fff', background: 'rgba(255,255,255,0.2)' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px' }}>
-              {/* الخيار الأول: التثبيت السريع PWA */}
-              <div style={{ padding: '16px', borderRadius: '14px', background: 'var(--fb-input-bg)', border: '1px solid var(--fb-divider)' }}>
-                <div style={{ fontWeight: '800', fontSize: '1rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <CheckCircle2 size={18} />
-                  <span>1️⃣ التثبيت السريع الفوري (بدون أي ملفات ثقيلة)</span>
-                </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--fb-text-secondary)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
-                  يتثبت التطبيق مباشرة على شاشة هاتفك الرئيسية ويتحمل في الأندرويد والآيفون دُون أي تحذيرات أمنية من Google Play Protect.
-                </p>
-                <button 
-                  type="button"
-                  className="btn-primary"
-                  onClick={() => { handleInstallApp(); setIsInstallModalOpen(false); }}
-                  style={{ width: '100%', justifyContent: 'center', background: '#10B981', fontWeight: '800' }}
-                >
-                  <Smartphone size={18} />
-                  <span>تثبيت التطبيق بنقرة زر 📲</span>
-                </button>
-              </div>
-
-              {/* الخيار الثاني: تنزيل ملف الـ APK المباشر */}
-              <div style={{ padding: '16px', borderRadius: '14px', background: 'var(--fb-input-bg)', border: '1px solid var(--fb-divider)' }}>
-                <div style={{ fontWeight: '800', fontSize: '1rem', color: '#1877F2', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <Download size={18} />
-                  <span>2️⃣ تحميل ملف الـ APK المباشر (Android APK)</span>
-                </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--fb-text-secondary)', margin: '0 0 12px 0', lineHeight: 1.5 }}>
-                  تنزيل حزمة تثبيت الأندرويد المباشرة عبر الرابط المستقر السريع <code style={{ color: '#1877F2' }}>global-market-iq.apk</code>.
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <a
-                    href="https://drive.google.com/drive/folders/1NB-IVwsMDeX1klZ0CKbk6oyfgNmg4qNN?usp=drive_link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary"
-                    style={{ width: '100%', justifyContent: 'center', background: 'linear-gradient(135deg, #1877F2, #2563EB)', textDecoration: 'none', textAlign: 'center', fontWeight: '800', padding: '12px' }}
-                    onClick={() => {
-                      setIsInstallModalOpen(false);
-                    }}
-                  >
-                    <Download size={18} />
-                    <span>تحميل ملف الـ APK عبر Google Drive المباشر 📁🚀</span>
-                  </a>
-
-                  <a
-                    href="/global-market-iq.apk"
-                    download="global-market-iq.apk"
-                    style={{ fontSize: '0.82rem', color: 'var(--fb-text-secondary)', textAlign: 'center', textDecoration: 'underline', marginTop: '2px' }}
-                  >
-                    أو التحميل المباشر من سيرفر الموقع (15 ميغابايت)
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 }

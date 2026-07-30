@@ -1,8 +1,8 @@
 // src/context/AuthContext.jsx
 // ═══════════════════════════════════════════════════════════
-// المصدر الأساسي: localStorage (فوري وخالي تماماً من Firebase Auth)
-// المصدر السحابي الاحتياطي: Firestore (مستندات المستخدمين مباشرة)
-// جوجل سرفيسز الرسمية: Google Identity Services (GSI) & Native GoogleAuth
+// نظام المصادقة المستقر المباشر (Direct Google Identity Services - GSI)
+// الاعتماد الكامل على localStorage للتخزين الفوري وحفظ الجلسة 100%
+// مزامنةFirestore للسيرفر دون الاعتماد على Firebase Auth
 // ═══════════════════════════════════════════════════════════
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -15,10 +15,6 @@ export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 const GOOGLE_CLIENT_ID = '1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com';
-
-// ═══════════════════════════════════════════════════════════
-// البريد الإلكتروني الخاص بمالك التطبيق (APP_OWNER)
-// ═══════════════════════════════════════════════════════════
 const OWNER_EMAIL = '888ssafaa@gmail.com';
 
 const enforceRole = (profile, email) => ({
@@ -27,12 +23,13 @@ const enforceRole = (profile, email) => ({
 });
 
 // ═══════════════════════════════════════════════════════════
-// مفاتيح localStorage
+// إدارة التخزين المحلي الصريح لضمان ديمومة الجلسة 100%
 // ═══════════════════════════════════════════════════════════
-const KEY_UID    = 'gm_uid';
-const KEY_TEXT   = (uid) => `gm_text_${uid}`;
-const KEY_AVATAR = (uid) => `gm_avatar_${uid}`;
-const KEY_COVER  = (uid) => `gm_cover_${uid}`;
+const KEY_UID         = 'gm_uid';
+const KEY_FULL_USER   = 'gm_user_profile';
+const KEY_TEXT        = (uid) => `gm_text_${uid}`;
+const KEY_AVATAR      = (uid) => `gm_avatar_${uid}`;
+const KEY_COVER       = (uid) => `gm_cover_${uid}`;
 
 const jSet = (key, val) => {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch (_) {}
@@ -45,20 +42,8 @@ const lsSet = (key, val) => { try { localStorage.setItem(key, val); } catch (_) 
 const lsGet = (key) => { try { return localStorage.getItem(key); } catch (_) { return null; } };
 const lsDel = (...keys) => keys.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
 
-const isBase64 = (v) => typeof v === 'string' && (v.startsWith('data:') || v.length > 5000);
-
-const saveTextFields = (uid, profile) => {
-  if (!uid) return;
-  const text = {};
-  Object.entries(profile).forEach(([k, v]) => {
-    if (!isBase64(v)) text[k] = v;
-  });
-  jSet(KEY_TEXT(uid), text);
-  lsSet(KEY_UID, uid);
-};
-
 export const saveUserImages = (uid, profile) => {
-  if (!uid) return;
+  if (!uid || !profile) return;
   if (profile.avatar && isBase64(profile.avatar)) lsSet(KEY_AVATAR(uid), profile.avatar);
   if (profile.cover  && isBase64(profile.cover))  lsSet(KEY_COVER(uid),  profile.cover);
 };
@@ -72,11 +57,34 @@ export const loadUserImages = (uid) => {
   return r;
 };
 
-const loadFullProfile = (uid) => {
-  if (!uid) return null;
-  const text = jGet(KEY_TEXT(uid));
-  if (!text) return null;
-  return { ...text, ...loadUserImages(uid) };
+const saveSessionProfile = (uid, profile) => {
+  if (!uid || !profile) return;
+  const cleanText = {};
+  Object.entries(profile).forEach(([k, v]) => {
+    if (!isBase64(v)) cleanText[k] = v;
+  });
+
+  jSet(KEY_FULL_USER, profile);
+  jSet(KEY_TEXT(uid), cleanText);
+  lsSet(KEY_UID, uid);
+
+  saveUserImages(uid, profile);
+};
+
+const loadSessionProfile = () => {
+  try {
+    const full = jGet(KEY_FULL_USER);
+    if (full && full.id) return full;
+    const uid = lsGet(KEY_UID);
+    if (!uid) return null;
+    const text = jGet(KEY_TEXT(uid));
+    if (!text) return null;
+    const av = lsGet(KEY_AVATAR(uid));
+    const cv = lsGet(KEY_COVER(uid));
+    return { ...text, ...(av ? { avatar: av } : {}), ...(cv ? { cover: cv } : {}) };
+  } catch (_) {
+    return null;
+  }
 };
 
 // ─── Firestore ──────────────────────────────────────────────
@@ -118,70 +126,72 @@ const parseJwt = (token) => {
 };
 
 // ═══════════════════════════════════════════════════════════
-// AuthProvider (بدون أي الاعتماد على Firebase Auth)
+// AuthProvider الخالي تماماً من مشاكل الـ Session و Firebase Auth
 // ═══════════════════════════════════════════════════════════
 export const AuthProvider = ({ children }) => {
-  const lastUid = lsGet(KEY_UID);
-  const [user, setUser] = useState(() => loadFullProfile(lastUid));
+  const [user, setUser] = useState(() => loadSessionProfile());
   const [loading, setLoading] = useState(false);
-  const uidRef = useRef(lastUid);
+  const uidRef = useRef(user?.id || null);
 
+  // تحديث المزامنة مع Firestore عند تحميل الصفحة إن وجد حساب مسجل محلياً
   useEffect(() => {
-    if (lastUid && !user) {
-      fsLoad(lastUid).then((fsData) => {
+    const local = loadSessionProfile();
+    if (local?.id) {
+      uidRef.current = local.id;
+      fsLoad(local.id).then((fsData) => {
         if (fsData) {
-          const full = enforceRole({ ...fsData, ...loadUserImages(lastUid), id: lastUid }, fsData.email);
-          setUser(full);
-          saveTextFields(lastUid, full);
+          const merged = enforceRole({ ...local, ...fsData, id: local.id }, fsData.email || local.email);
+          setUser(merged);
+          saveSessionProfile(local.id, merged);
         }
       });
     }
-  }, [lastUid]); // eslint-disable-line
+  }, []);
 
-  // ── login المباشر ─────────────────────────────────────────
+  // ── login المباشر (البريد / الحساب الشخصي) ────────────────
   const login = (profileObj) => {
     const uid = profileObj?.id || `user_${Date.now()}`;
     const full = enforceRole({ ...profileObj, id: uid }, profileObj.email);
     setUser(full);
     uidRef.current = uid;
-    saveTextFields(uid, full);
-    saveUserImages(uid, full);
+    saveSessionProfile(uid, full);
     fsSave(uid, full);
+    window.dispatchEvent(new Event('storage'));
     return full;
   };
 
-  // ── updateUser ───────────────────────────────────────────
+  // ── updateUser (تحديث البيانات الشخصية) ─────────────────
   const updateUser = async (updatedFields) => {
-    const uid = user?.id || uidRef.current || lastUid;
+    const uid = user?.id || uidRef.current;
+    if (!uid) return null;
     const merged = enforceRole({ ...(user || {}), ...updatedFields, id: uid }, user?.email);
 
     setUser(merged);
-    if (uid) {
-      saveTextFields(uid, merged);
-      saveUserImages(uid, merged);
-      fsSave(uid, merged);
-    }
+    saveSessionProfile(uid, merged);
+    fsSave(uid, merged);
+    window.dispatchEvent(new Event('storage'));
     return merged;
   };
 
-  // ── logout ───────────────────────────────────────────────
+  // ── logout (تسجيل الخروج النظيف) ───────────────────────────
   const logout = async () => {
     const uid = user?.id || uidRef.current;
     setUser(null);
     uidRef.current = null;
-    lsDel(KEY_UID);
+    lsDel(KEY_UID, KEY_FULL_USER);
     if (uid) {
       lsDel(KEY_TEXT(uid), KEY_AVATAR(uid), KEY_COVER(uid));
     }
+    window.dispatchEvent(new Event('storage'));
   };
 
-  // ── loginWithGoogle عبر Google Identity Services المباشرة ──
+  // ── loginWithGoogle (مستقر 100% على كافة الهواتف والمتصفحات) ─
   const loginWithGoogle = async () => {
     setLoading(true);
     try {
       let gUser = null;
 
-      // 1. الأجهزة المحمولة وتطبيقات الـ Native
+      // 1. أجهزة الموبايل والتطبيق الأصلي (Native Android APK / Capacitor)
       if (Capacitor.isNativePlatform()) {
         try {
           GoogleAuth.initialize({
@@ -192,31 +202,69 @@ export const AuthProvider = ({ children }) => {
           const res = await GoogleAuth.signIn();
           if (res) {
             gUser = {
-              uid: res.id || res.authentication?.idToken ? `g_${res.id}` : `g_${Date.now()}`,
+              uid: res.id ? `g_${res.id}` : `g_${Date.now()}`,
               email: res.email,
               name: res.name || res.givenName || 'مستخدم Google',
               photoURL: res.imageUrl,
             };
           }
         } catch (nErr) {
-          console.warn('[Native GoogleAuth Error]:', nErr);
+          console.warn('[Native GoogleAuth Warning]:', nErr);
         }
       }
 
-      // 2. المتصفحات (Mobile Web & Desktop Web) عبر Google Identity Services (GSI)
+      // 2. متصفحات الموبايل والكمبيوتر (Mobile Web Chrome/Safari & Desktop) عبر Google Identity Services (GSI)
       if (!gUser) {
         gUser = await new Promise((resolve, reject) => {
-          if (!window.google || !window.google.accounts) {
-            // تحميل سكريبت GSI ديناميكياً إذا لم يكتمل تحميله
-            const script = document.createElement('script');
-            script.src = 'https://accounts.google.com/gsi/client';
-            script.async = true;
-            script.defer = true;
-            script.onload = () => initGsi(resolve, reject);
-            script.onerror = () => reject(new Error('فشل تحميل مكتبة Google Identity Services'));
-            document.head.appendChild(script);
+          const runAuthFlow = () => {
+            if (!window.google || !window.google.accounts) {
+              reject(new Error('مكتبة Google Identity غير متوفرة. تحقق من اتصالك بالإنترنت.'));
+              return;
+            }
+
+            let resolved = false;
+
+            // خيار A: استخدام OAuth2 Token Client المباشر والمستقر على الهواتف
+            try {
+              const tokenClient = window.google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'email profile openid',
+                callback: (tokenRes) => {
+                  if (tokenRes && tokenRes.access_token && !resolved) {
+                    resolved = true;
+                    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                      headers: { Authorization: `Bearer ${tokenRes.access_token}` },
+                    })
+                      .then(r => r.json())
+                      .then(userInfo => {
+                        resolve({
+                          uid: `g_${userInfo.sub}`,
+                          email: userInfo.email,
+                          name: userInfo.name || 'مستخدم Google',
+                          photoURL: userInfo.picture,
+                        });
+                      })
+                      .catch(reject);
+                  } else if (!resolved) {
+                    reject(new Error('تم إلغاء عملية الدخول بـ Google.'));
+                  }
+                },
+                error_callback: (err) => {
+                  console.warn('[GSI TokenClient Error]:', err);
+                  if (!resolved) reject(err);
+                }
+              });
+
+              tokenClient.requestAccessToken();
+            } catch (gErr) {
+              if (!resolved) reject(gErr);
+            }
+          };
+
+          if (document.readyState === 'complete' || window.google) {
+            runAuthFlow();
           } else {
-            initGsi(resolve, reject);
+            window.addEventListener('load', runAuthFlow, { once: true });
           }
         });
       }
@@ -233,7 +281,6 @@ export const AuthProvider = ({ children }) => {
       if (fsData) {
         fullProfile = enforceRole({
           ...fsData,
-          ...loadUserImages(uid),
           id: uid,
           email: gUser.email,
           name: fsData.name || gUser.name || 'مستخدم Google',
@@ -257,7 +304,8 @@ export const AuthProvider = ({ children }) => {
 
       setUser(fullProfile);
       uidRef.current = uid;
-      saveTextFields(uid, fullProfile);
+      saveSessionProfile(uid, fullProfile);
+      window.dispatchEvent(new Event('storage'));
       return fullProfile;
     } catch (error) {
       console.error('[Google Sign-In Direct Error]:', error);
@@ -267,73 +315,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // دالة تفعيل Google Identity Services المباشرة
-  const initGsi = (resolve, reject) => {
-    try {
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (response) => {
-          if (response.credential) {
-            const payload = parseJwt(response.credential);
-            if (payload) {
-              resolve({
-                uid: `g_${payload.sub}`,
-                email: payload.email,
-                name: payload.name || payload.given_name || 'مستخدم Google',
-                photoURL: payload.picture,
-              });
-            } else {
-              reject(new Error('تعذر معالجة رمز Google Jwt.'));
-            }
-          } else {
-            reject(new Error('لم يمرر خادم Google رمز المصادقة.'));
-          }
-        },
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
-
-      // إظهار نافذة اختيار الحساب الفورية One Tap / Prompt
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          // إذا تم حظر النافذة التلقائية، استخدم OAuth2 token client المباشر
-          const client = window.google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: 'email profile openid',
-            callback: (tokenResponse) => {
-              if (tokenResponse && tokenResponse.access_token) {
-                fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-                })
-                  .then(res => res.json())
-                  .then(userInfo => {
-                    resolve({
-                      uid: `g_${userInfo.sub}`,
-                      email: userInfo.email,
-                      name: userInfo.name || 'مستخدم Google',
-                      photoURL: userInfo.picture,
-                    });
-                  })
-                  .catch(reject);
-              } else {
-                reject(new Error('تم إلغاء عملية تسجيل الدخول بـ Google.'));
-              }
-            },
-          });
-          client.requestAccessToken();
-        }
-      });
-    } catch (err) {
-      reject(err);
-    }
-  };
-
   return (
     <AuthContext.Provider value={{
       user,
       firebaseUser: user ? { uid: user.id, email: user.email } : null,
       loading,
-      isLoggedIn: Boolean(user),
+      isLoggedIn: Boolean(user?.id),
       login,
       loginWithGoogle,
       logout,
