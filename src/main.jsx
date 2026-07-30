@@ -1,8 +1,12 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
+import { Auth0Provider } from '@auth0/auth0-react'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+
+const AUTH0_DOMAIN = 'dev-84pkq1gqub766fon.us.auth0.com';
+const AUTH0_CLIENT_ID = '4bEb45aZ0b6P8Wm3tg8kjsNJq9clpiyK';
 
 // Error Boundary لعرض أي خطأ على الشاشة بدلاً من الصفحة البيضاء
 class ErrorBoundary extends React.Component {
@@ -117,9 +121,19 @@ if (window.location.pathname === '/sitemap.xml' || window.location.pathname === 
   createRoot(document.getElementById('root')).render(
     <React.StrictMode>
       <ErrorBoundary>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <Auth0Provider
+          domain={AUTH0_DOMAIN}
+          clientId={AUTH0_CLIENT_ID}
+          authorizationParams={{
+            redirect_uri: window.location.origin,
+          }}
+          cacheLocation="localstorage"
+          useRefreshTokens={true}
+        >
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </Auth0Provider>
       </ErrorBoundary>
     </React.StrictMode>,
   );
