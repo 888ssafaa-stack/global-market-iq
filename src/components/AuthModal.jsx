@@ -70,8 +70,12 @@ export default function AuthModal({ isOpen, onClose }) {
     try {
       if (loginWithGoogle) {
         const userObj = await loginWithGoogle();
-        setSuccess(`✅ تم الدخول بحساب Google بنجاح! مرحباً ${userObj.name}`);
-        setTimeout(handleClose, 1000);
+        if (userObj) {
+          setSuccess(`✅ تم الدخول بحساب Google بنجاح! مرحباً ${userObj.name}`);
+          setTimeout(handleClose, 1000);
+        } else {
+          setSuccess('⏳ جاري إعادة التوجيه لتثبيت الجلسة وحساب Google...');
+        }
       }
     } catch (err) {
       console.error('[Google Auth Debug Log]:', err.code, err.message, err);

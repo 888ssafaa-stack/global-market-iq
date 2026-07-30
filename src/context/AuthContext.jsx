@@ -12,6 +12,8 @@ import {
   browserLocalPersistence,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithCredential,
   signInAnonymously
 } from 'firebase/auth';
@@ -129,8 +131,19 @@ export const AuthProvider = ({ children }) => {
   const uidRef = useRef(lastUid);
 
   useEffect(() => {
-    // ضمان استمرارية الجلسة بـ browserLocalPersistence
+    // 1. ضمان استمرارية الجلسة الصريحة بـ browserLocalPersistence
     setPersistence(auth, browserLocalPersistence).catch(() => {});
+
+    // 2. التقاط وتثبيت نتائج إعادة التوجيه لـ Google Auth على متصفحات الهواتف
+    getRedirectResult(auth)
+      .then((res) => {
+        if (res?.user) {
+          console.log('[Google Auth Redirect Result Success]:', res.user.email);
+        }
+      })
+      .catch((err) => {
+        console.warn('[Google Auth Redirect Result Log]:', err.code, err.message);
+      });
 
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
@@ -230,11 +243,14 @@ export const AuthProvider = ({ children }) => {
   // ── loginWithGoogle ──────────────────────────────────────
   const loginWithGoogle = async () => {
     try {
+      // 1. تثبيت إعدادات الجلسة الدائمة صراحة قبل أي عملية مصادقة
+      await setPersistence(auth, browserLocalPersistence).catch(() => {});
+
       let fbUser;
 
-      // 1. محاولة المصادقة الناصعة الأصيلة (Native GoogleAuth) أولاً للهواتف والـ WebView
+      // 2. محاولة المصادقة الأصيلة (Native GoogleAuth) لتطبيقات الهواتف المحمولة
       try {
-        if (Capacitor.isNativePlatform() || window.Capacitor) {
+        if (Capacitor.isNativePlatform()) {
           GoogleAuth.initialize({
             clientId: '1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com',
             scopes: ['profile', 'email'],
@@ -252,12 +268,25 @@ export const AuthProvider = ({ children }) => {
         console.warn('[Native GoogleAuth Warning]:', nativeErr.message, nativeErr);
       }
 
-      // 2. إذا لم تكتمل المصادقة الناصعة، استخدام signInWithPopup المباشر
+      // 3. للمتصفحات (الهاتف المحمول والكمبيوتر): signInWithPopup مع التراجع لـ signInWithRedirect
       if (!fbUser) {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await signInWithPopup(auth, provider);
-        fbUser = result.user;
+        try {
+          const result = await signInWithPopup(auth, provider);
+          fbUser = result.user;
+        } catch (popupErr) {
+          if (
+            popupErr.code === 'auth/initial-state-not-found' ||
+            popupErr.code === 'auth/popup-blocked' ||
+            popupErr.code === 'auth/cancelled-popup-request'
+          ) {
+            console.warn('[Google Auth] Popup restricted, initiating signInWithRedirect...', popupErr.message);
+            await signInWithRedirect(auth, provider);
+            return null;
+          }
+          throw popupErr;
+        }
       }
 
       let fsData = await fsLoad(fbUser.uid);
