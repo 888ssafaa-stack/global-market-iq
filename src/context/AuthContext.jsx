@@ -2,7 +2,7 @@
 // ═══════════════════════════════════════════════════════════
 // نظام مصادقة Firebase الرسمية (Firebase Authentication - 1-Tap Google Sign-In)
 // دمج المصادقة المباشرة عبر حساب Google بضغطة زر واحدة (Firebase Authentication)
-// استمرار الجلسة 100% عبر browserLocalPersistence وتخزين localStorage المباشر
+// الاعتماد الحصري على Native Google Sign-In و signInWithCredential لمنع فقدان الحالة الأولية
 // ═══════════════════════════════════════════════════════════
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { 
@@ -187,7 +187,7 @@ export const AuthProvider = ({ children }) => {
     return full;
   };
 
-  // ── 2. تسجيل الدخول عبر حساب Google بضغطة زر واحدة (Firebase Auth) ──
+  // ── 2. تسجيل الدخول عبر Google بضغطة زر واحدة ومنع "فقدان الحالة الأولية" ──
   const loginWithGoogle = async () => {
     setLoading(true);
     try {
@@ -195,8 +195,13 @@ export const AuthProvider = ({ children }) => {
 
       let fbUser = null;
 
+      const isNative = Capacitor.isNativePlatform() || 
+                       Capacitor.getPlatform() === 'android' || 
+                       Capacitor.getPlatform() === 'ios' || 
+                       Boolean(window.Capacitor?.isNative);
+
       // أ) الأجهزة المحمولة الأصيلة (Native Android APK / Capacitor)
-      if (Capacitor.isNativePlatform()) {
+      if (isNative) {
         try {
           GoogleAuth.initialize({
             clientId: GOOGLE_CLIENT_ID,
@@ -215,14 +220,52 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // ب) المتصفحات (Mobile Web & Desktop Web) عبر النافذة المنبثقة المباشرة (signInWithPopup)
+      // ب) المتصفحات و WebView للهواتف المحمولة والكمبيوتر
       if (!fbUser) {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        
-        // الاعتماد الحصري والمباشر على النافذة المنبثقة signInWithPopup دون مغادرة الصفحة
-        const result = await signInWithPopup(auth, provider);
-        fbUser = result.user;
+
+        try {
+          const result = await signInWithPopup(auth, provider);
+          fbUser = result.user;
+        } catch (popupErr) {
+          console.warn('[signInWithPopup Warning]:', popupErr.code, popupErr.message);
+
+          // إذا ظهر خطأ فقدان الحالة الأولية auth/initial-state-not-found أو حظر النافذة
+          // نمرر الـ Token مباشرة إلى signInWithCredential دون الحاجة لـ Popup أو Cookies!
+          if (
+            popupErr.code === 'auth/initial-state-not-found' ||
+            popupErr.code === 'auth/popup-blocked' ||
+            popupErr.code === 'auth/cancelled-popup-request'
+          ) {
+            const tokenResult = await new Promise((resolve, reject) => {
+              if (window.google?.accounts?.oauth2) {
+                const client = window.google.accounts.oauth2.initTokenClient({
+                  client_id: GOOGLE_CLIENT_ID,
+                  scope: 'email profile openid',
+                  callback: (tokenRes) => {
+                    if (tokenRes?.access_token) {
+                      resolve({ accessToken: tokenRes.access_token });
+                    } else {
+                      reject(new Error('تعذر جلب رمز الدخول المباشر.'));
+                    }
+                  },
+                });
+                client.requestAccessToken();
+              } else {
+                reject(popupErr);
+              }
+            });
+
+            if (tokenResult?.accessToken) {
+              const credential = GoogleAuthProvider.credential(null, tokenResult.accessToken);
+              const res = await signInWithCredential(auth, credential);
+              fbUser = res.user;
+            }
+          } else {
+            throw popupErr;
+          }
+        }
       }
 
       if (!fbUser) return null;
@@ -285,7 +328,7 @@ export const AuthProvider = ({ children }) => {
     return merged;
   };
 
-  // ── logout (تسجيل الخروج بـ Firebase) ─────────────────────
+  // ── logout ───────────────────────────────────────────────
   const logout = async () => {
     const uid = user?.id || uidRef.current;
     try {
