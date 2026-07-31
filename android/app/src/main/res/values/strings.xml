@@ -4,4 +4,5 @@
     <string name="title_activity_main">Global Market IQ</string>
     <string name="package_name">com.globalmarket.iq</string>
     <string name="custom_url_scheme">com.globalmarket.iq</string>
+    <string name="server_client_id">1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com</string>
 </resources>

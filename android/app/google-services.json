@@ -16,6 +16,14 @@
         {
           "client_id": "1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com",
           "client_type": 3
+        },
+        {
+          "client_id": "1068894096179-androiddebug.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.globalmarket.iq",
+            "certificate_hash": "38926eca4aae90d58137e07289dc1663bd951ab6"
+          }
         }
       ],
       "api_key": [
