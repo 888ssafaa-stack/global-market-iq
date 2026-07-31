@@ -18,7 +18,8 @@ import {
   Flame,
   Tag,
   Users,
-  Radio
+  Radio,
+  Download
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext.jsx';
 
@@ -262,6 +263,30 @@ export default function Navbar({
             <span>مستخدِم</span>
           </span>
         )}
+
+        {/* 📱 زر تحميل التطبيق المباشر */}
+        <a
+          href="/app.apk"
+          download="app.apk"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '8px 14px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #10B981, #059669)',
+            color: '#ffffff',
+            textDecoration: 'none',
+            fontWeight: '800',
+            fontSize: '0.88rem',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+            transition: 'all 0.2s ease',
+          }}
+          title="تحميل تطبيق الأندرويد المباشر (APK)"
+        >
+          <Download size={18} />
+          <span>تطبيق Android 📱</span>
+        </a>
 
         {/* 📡 زر البث المباشر الفوري */}
         <button 

@@ -76,8 +76,8 @@ export default function Footer({ onOpenPage }) {
           </div>
 
           <a
-            href="/app-release.apk"
-            download="app-release.apk"
+            href="/app.apk"
+            download="app.apk"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
