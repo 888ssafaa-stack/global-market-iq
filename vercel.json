@@ -44,26 +44,29 @@
       ]
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/sitemap.xml",
-      "destination": "/sitemap.xml"
+      "handle": "filesystem"
     },
     {
-      "source": "/robots.txt",
-      "destination": "/robots.txt"
+      "src": "/app.apk",
+      "dest": "/app.apk"
     },
     {
-      "source": "/app.apk",
-      "destination": "/app.apk"
+      "src": "/global-market-iq.apk",
+      "dest": "/global-market-iq.apk"
     },
     {
-      "source": "/global-market-iq.apk",
-      "destination": "/global-market-iq.apk"
+      "src": "/sitemap.xml",
+      "dest": "/sitemap.xml"
     },
     {
-      "source": "/((?!sitemap\\.xml|robots\\.txt|app\\.apk|global-market-iq\\.apk|.*\\.apk|assets/).*)",
-      "destination": "/index.html"
+      "src": "/robots.txt",
+      "dest": "/robots.txt"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
