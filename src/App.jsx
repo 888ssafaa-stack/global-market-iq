@@ -478,6 +478,16 @@ export default function App() {
     const userName = user?.name || user?.userName || firebaseUser?.displayName || user?.email?.split('@')[0] || 'مستخدم في المنصة';
     const userAvatar = user?.avatar || firebaseUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=1877F2&color=fff`;
 
+    if (editingListing) {
+      const currentUserId = user?.id || user?.uid || firebaseUser?.uid;
+      const isOwner = editingListing.userId === currentUserId || user?.role === 'APP_OWNER' || user?.email === '888ssafaa@gmail.com';
+      if (!isOwner) {
+        alert('⛔ عذراً، لا تملك الصلاحية لتعديل هذا الإعلان لأنك لست المالك الحقيقي له.');
+        setIsListingModalOpen(false);
+        return;
+      }
+    }
+
     const rawPayload = editingListing
       ? {
           ...editingListing,
@@ -541,6 +551,17 @@ export default function App() {
   };
 
   const handleDeleteListing = async (id) => {
+    const target = listings.find(l => l.id === id);
+    if (!target) return;
+
+    const currentUserId = user?.id || user?.uid || firebaseUser?.uid;
+    const isOwner = target.userId === currentUserId || user?.role === 'APP_OWNER' || user?.email === '888ssafaa@gmail.com';
+    
+    if (!isOwner) {
+      alert('⛔ عذراً، لا تملك الصلاحية لحذف هذا الإعلان لأنك لست المالك الحقيقي له.');
+      return;
+    }
+
     if (window.confirm('هل أنت تأكد من رغبتك في حذف هذا الإعلان بالكامل؟')) {
       try {
         if (db) await deleteDoc(doc(db, 'listings', id));
@@ -555,6 +576,12 @@ export default function App() {
   const handleToggleDisableComments = async (id) => {
     const target = listings.find(l => l.id === id);
     if (!target) return;
+    const currentUserId = user?.id || user?.uid || firebaseUser?.uid;
+    const isOwner = target.userId === currentUserId || user?.role === 'APP_OWNER' || user?.email === '888ssafaa@gmail.com';
+    if (!isOwner) {
+      alert('⛔ عذراً، لا تملك الصلاحية للتحكم بالتعليقات في هذا الإعلان.');
+      return;
+    }
     const nextCommentsDisabled = !target.commentsDisabled;
     try {
       if (db) await setDoc(doc(db, 'listings', id), { commentsDisabled: nextCommentsDisabled }, { merge: true });
@@ -665,6 +692,19 @@ export default function App() {
   const handleDeleteComment = async (listingId, commentId) => {
     const target = listings.find(l => l.id === listingId);
     if (!target) return;
+    const targetComment = (target.comments || []).find(c => c.id === commentId);
+    if (!targetComment) return;
+
+    const currentUserId = user?.id || user?.uid || firebaseUser?.uid;
+    const isCommentOwner = targetComment.userId === currentUserId;
+    const isListingOwner = target.userId === currentUserId;
+    const isOwner = isCommentOwner || isListingOwner || user?.role === 'APP_OWNER' || user?.email === '888ssafaa@gmail.com';
+
+    if (!isOwner) {
+      alert('⛔ عذراً، لا تملك الصلاحية لحذف هذا التعليق.');
+      return;
+    }
+
     const updatedComments = (target.comments || []).filter(c => c.id !== commentId);
     try {
       if (db) await setDoc(doc(db, 'listings', listingId), cleanObject({ comments: updatedComments }), { merge: true });
