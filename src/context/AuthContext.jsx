@@ -8,8 +8,6 @@ import React, { createContext, useState, useEffect, useContext, useRef } from 'r
 import { 
   GoogleAuthProvider, 
   signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult, 
   signInWithCredential, 
   onAuthStateChanged, 
   signOut, 
@@ -127,9 +125,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     setPersistence(auth, browserLocalPersistence).catch(() => {});
 
-    // الالتقاط الهادئ لنتائج إعادة التوجيه
-    getRedirectResult(auth).catch(() => {});
-
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         const uid = fbUser.uid;
@@ -220,21 +215,14 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // ب) المتصفحات (Mobile Web & Desktop Web) عبر Firebase GoogleAuthProvider
+      // ب) المتصفحات (Mobile Web & Desktop Web) عبر النافذة المنبثقة المباشرة (signInWithPopup)
       if (!fbUser) {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        try {
-          const result = await signInWithPopup(auth, provider);
-          fbUser = result.user;
-        } catch (popupErr) {
-          if (popupErr.code === 'auth/initial-state-not-found' || popupErr.code === 'auth/popup-blocked') {
-            console.warn('[Firebase Auth] Popup blocked or state missing, using redirect...', popupErr.message);
-            await signInWithRedirect(auth, provider);
-            return null;
-          }
-          throw popupErr;
-        }
+        
+        // الاعتماد الحصري والمباشر على النافذة المنبثقة signInWithPopup دون مغادرة الصفحة
+        const result = await signInWithPopup(auth, provider);
+        fbUser = result.user;
       }
 
       if (!fbUser) return null;
