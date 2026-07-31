@@ -25,7 +25,7 @@ import {
   MOCK_APP_OWNER, 
   INITIAL_LISTINGS 
 } from './data/mockData';
-import { SlidersHorizontal, Store, ArrowUpDown, Clock, Users, Handshake, Search, UserCheck, Flame, Tag, Zap } from 'lucide-react';
+import { SlidersHorizontal, Store, ArrowUpDown, Clock, Users, Handshake, Search, UserCheck, Flame, Tag, Zap, Radio, PlayCircle, Eye, Clock3 } from 'lucide-react';
 
 export default function App() {
   const { user: authUser, loading: authLoading, firebaseUser, login, logout, updateUser } = useContext(AuthContext);
@@ -81,6 +81,7 @@ export default function App() {
   const [onlyPhotosMode, setOnlyPhotosMode] = useState(false);
   const [defaultIsDealInModal, setDefaultIsDealInModal] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authPrompt, setAuthPrompt] = useState({ open: false, message: '' });
   const [isTosModalOpen, setIsTosModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportingListing, setReportingListing] = useState(null);
@@ -90,6 +91,80 @@ export default function App() {
   // 7.5 البث المباشر والمتابعة
   const [isLiveStreamModalOpen, setIsLiveStreamModalOpen] = useState(false);
   const [liveStreamerUser, setLiveStreamerUser] = useState(null);
+  const [liveStreamHub, setLiveStreamHub] = useState([
+    {
+      id: 'streamer_1',
+      name: 'سارة',
+      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
+      specialty: 'سيارات ومركبات',
+      viewers: 148,
+      isLive: true,
+      videos: [
+        {
+          id: 'video_1',
+          title: 'بث مباشر: مراجعة سيارة جديدة',
+          description: 'استعراض مميز لسيارة فاخرة مع تحليل الأسعار والتفاصيل الفنية.',
+          status: 'live',
+          duration: 'مباشر الآن',
+          thumbnail: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=80'
+        },
+        {
+          id: 'video_2',
+          title: 'تسجيل سابق: أفضل عروض اليوم',
+          description: 'مراجعة سريعة لأبرز العروض والتخفيضات المتاحة حالياً.',
+          status: 'recorded',
+          duration: '18:42',
+          thumbnail: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=900&q=80'
+        }
+      ]
+    },
+    {
+      id: 'streamer_2',
+      name: 'أحمد',
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+      specialty: 'عقارات وأراضي',
+      viewers: 86,
+      isLive: true,
+      videos: [
+        {
+          id: 'video_3',
+          title: 'بث مباشر: عرض أرض سكنية',
+          description: 'استقبال مباشر لأسئلة المتابعين حول الموقع والسعر والواجهة.',
+          status: 'live',
+          duration: 'مباشر الآن',
+          thumbnail: 'https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=900&q=80'
+        },
+        {
+          id: 'video_4',
+          title: 'تسجيل: نظرة على المشاريع الجديدة',
+          description: 'شرح شامل عن أحدث المشاريع المتاحة ومقارنة المناطق.',
+          status: 'recorded',
+          duration: '12:05',
+          thumbnail: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80'
+        }
+      ]
+    },
+    {
+      id: 'streamer_3',
+      name: 'ليال',
+      avatar: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=200&q=80',
+      specialty: 'هواتف وأجهزة',
+      viewers: 62,
+      isLive: false,
+      videos: [
+        {
+          id: 'video_5',
+          title: 'تسجيل: مقارنة بين الهواتف الحديثة',
+          description: 'مقارنة مباشرة بين الموديلات الجديدة مع توضيح المميزات.',
+          status: 'recorded',
+          duration: '22:10',
+          thumbnail: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80'
+        }
+      ]
+    }
+  ]);
+  const [selectedLiveStreamer, setSelectedLiveStreamer] = useState(liveStreamHub[0]);
+  const [selectedLiveVideo, setSelectedLiveVideo] = useState(liveStreamHub[0]?.videos?.[0] || null);
   const [followingMap, setFollowingMap] = useState(() => {
     try {
       const saved = localStorage.getItem(`gm_following_${user?.id}`);
@@ -101,6 +176,32 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem('fb_market_theme') === 'dark';
   });
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choiceResult = await deferredInstallPrompt.userChoice;
+    if (choiceResult.outcome === 'accepted') {
+      setIsInstallable(false);
+    }
+    setDeferredInstallPrompt(null);
+  };
 
   // ═══════════════════════════════════════════════════════════
   // 🌐 المزامنة الفورية من Firestore كولكشن Listings
@@ -325,9 +426,14 @@ export default function App() {
     setIsTosModalOpen(false);
   };
 
+  const openAuthPrompt = (message) => {
+    setAuthPrompt({ open: true, message });
+    setIsAuthModalOpen(true);
+  };
+
   const handleOpenCreateModal = () => {
     if (!isLoggedIn) {
-      setIsAuthModalOpen(true);
+      openAuthPrompt('يرجى تسجيل الدخول أولاً لتتمكن من نشر إعلان جديد والتفاعل مع المجتمع بشكل صحيح.');
       return;
     }
     setEditingListing(null);
@@ -338,7 +444,7 @@ export default function App() {
 
   const handleOpenCreateDealModal = () => {
     if (!isLoggedIn) {
-      setIsAuthModalOpen(true);
+      openAuthPrompt('يرجى تسجيل الدخول أولاً لتتمكن من نشر عرض مخفض والتفاعل مع المجتمع بشكل صحيح.');
       return;
     }
     setEditingListing(null);
@@ -361,6 +467,11 @@ export default function App() {
 
   // 💾 حفظ/تحديث إعلان أو عرض مخفض في Firestore مباشرة مع التحديث الفوري ومعالجة الأخطاء الشاملة
   const handleSaveListing = async (listingData) => {
+    if (!isLoggedIn) {
+      openAuthPrompt('يرجى تسجيل الدخول أولاً لتتمكن من نشر إعلان جديد والتفاعل مع المجتمع بشكل صحيح.');
+      return;
+    }
+
     const listingId = editingListing ? editingListing.id : `list_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     
     const userId = user?.id || user?.uid || firebaseUser?.uid || 'user_' + Date.now();
@@ -463,7 +574,7 @@ export default function App() {
 
   const handleLikeListing = async (id) => {
     if (!isLoggedIn) {
-      setIsAuthModalOpen(true);
+      openAuthPrompt('يرجى تسجيل الدخول أولاً لتتمكن من الإعجاب على الإعلانات والتفاعل مع المستخدمين بشكل آمن ومريح.');
       return;
     }
     const target = listings.find(l => l.id === id);
@@ -507,7 +618,7 @@ export default function App() {
 
   const handleAddComment = async (listingId, text) => {
     if (!isLoggedIn) {
-      setIsAuthModalOpen(true);
+      openAuthPrompt('يرجى تسجيل الدخول أولاً لتتمكن من إضافة تعليق والمشاركة في المحادثات مع الآخرين.');
       return;
     }
     const target = listings.find(l => l.id === listingId);
@@ -567,7 +678,7 @@ export default function App() {
 
   const handleToggleFollow = (targetUserId, targetUserName) => {
     if (!isLoggedIn) {
-      setIsAuthModalOpen(true);
+      openAuthPrompt('يرجى تسجيل الدخول أولاً لتتمكن من متابعة المستخدمين والتواصل معهم بشكل صحيح.');
       return;
     }
     if (!targetUserId || targetUserId === user?.id) return;
@@ -687,13 +798,15 @@ export default function App() {
     }
   };
 
-  const handleSaveRecordedStream = async (streamData) => {
+  const handleSaveRecordedStream = async (streamData, ownerUser = user) => {
     if (!streamData) return;
 
+    const owner = ownerUser || user || {};
     const listingId = `live_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-    const userId = user?.id || user?.uid || firebaseUser?.uid || 'user_' + Date.now();
-    const userName = user?.name || user?.userName || firebaseUser?.displayName || 'مستخدم في المنصة';
-    const userAvatar = user?.avatar || firebaseUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=EF4444&color=fff`;
+    const userId = owner?.id || owner?.uid || user?.id || user?.uid || firebaseUser?.uid || 'user_' + Date.now();
+    const userName = owner?.name || owner?.userName || user?.name || user?.userName || firebaseUser?.displayName || 'مستخدم في المنصة';
+    const userAvatar = owner?.avatar || owner?.photoURL || user?.avatar || firebaseUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=EF4444&color=fff`;
+    const userEmail = owner?.email || user?.email || '';
 
     const payload = cleanObject({
       id: listingId,
@@ -702,10 +815,10 @@ export default function App() {
       price: 0,
       currency: 'IQD',
       category: streamData.category || 'أخرى',
-      governorate: user?.governorate || 'بغداد',
-      area: user?.area || 'العراق',
+      governorate: owner?.governorate || user?.governorate || 'بغداد',
+      area: owner?.area || user?.area || 'العراق',
       nearestLandmark: 'بث مباشر مسجّل',
-      phone: user?.phone || '07700000000',
+      phone: owner?.phone || user?.phone || '07700000000',
       condition: 'جديد',
       images: streamData.images || [
         'https://assets.mixkit.co/videos/preview/mixkit-recording-a-live-stream-video-41487-large.mp4'
@@ -713,9 +826,11 @@ export default function App() {
       userId: userId,
       userName: userName,
       userAvatar: userAvatar,
-      userEmail: user?.email || '',
+      userEmail: userEmail,
       status: 'active',
       isLiveRecorded: true,
+      sourceType: 'live_stream',
+      recordedAt: new Date().toISOString(),
       likesCount: 0,
       likedBy: [],
       comments: [],
@@ -729,8 +844,8 @@ export default function App() {
       if (db) {
         await setDoc(doc(db, 'listings', listingId), payload, { merge: true });
       }
-      alert('تم حفظ ونشر تسجيل البث المباشر في صفحتك الشخصية وسوق المنصة بنجاح! 📡🔴');
-      setViewedUser(null);
+      alert('تم حفظ ونشر تسجيل البث المباشر في صفحة المستخدم الشخصية وسوق المنصة بنجاح! 📡🔴');
+      setViewedUser(owner?.id ? owner : null);
       setActiveTab('profile');
     } catch (err) {
       console.error('[Save Recorded Stream Error]:', err);
@@ -1473,6 +1588,38 @@ export default function App() {
         }}
       />
 
+      {isInstallable && (
+        <div style={{
+          background: 'linear-gradient(135deg, #1877F2 0%, #2563EB 100%)',
+          color: '#fff',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          flexWrap: 'wrap',
+          fontWeight: '800',
+          fontSize: '0.95rem',
+          boxShadow: '0 2px 12px rgba(24, 119, 242, 0.2)'
+        }}>
+          <span>📲 تثبيت تطبيق السوق العالمي على جهازك للاستفادة من تجربة أسرع وأكثر سلاسة.</span>
+          <button
+            onClick={handleInstallApp}
+            style={{
+              border: 'none',
+              background: '#fff',
+              color: '#1877F2',
+              padding: '8px 14px',
+              borderRadius: '999px',
+              fontWeight: '800',
+              cursor: 'pointer'
+            }}
+          >
+            تثبيت التطبيق
+          </button>
+        </div>
+      )}
+
       {/* شريط التنقل العلوي */}
       <Navbar 
         activeTab={activeTab}
@@ -1489,6 +1636,7 @@ export default function App() {
         notifications={notifications}
         onMarkNotificationsRead={handleMarkNotificationsRead}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onRequireAuth={openAuthPrompt}
         onAcceptPartnership={handleAcceptPartnership}
         onRejectPartnership={handleRejectPartnership}
         onOpenMyProfile={handleOpenMyProfile}
@@ -1496,6 +1644,143 @@ export default function App() {
       />
 
       <main className="main-content">
+        {(activeTab === 'market' || activeTab === 'deals') && (
+          <section style={{
+            background: 'linear-gradient(135deg, rgba(24,119,242,0.12), rgba(139,92,246,0.14))',
+            border: '1px solid rgba(24,119,242,0.2)',
+            borderRadius: '22px',
+            padding: '20px',
+            marginBottom: '24px',
+            boxShadow: '0 12px 30px rgba(15,23,42,0.08)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'linear-gradient(135deg, #EF4444, #F97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <Radio size={22} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900' }}>البث المباشر في أعلى الصفحة</h2>
+                  <p style={{ margin: '3px 0 0', color: 'var(--fb-text-secondary)', fontSize: '0.9rem' }}>اختر المستخدم النشط ثم اختر الفيديو الذي تريده للانضمام إليه</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.7)', padding: '8px 12px', borderRadius: '999px', fontWeight: '800', color: '#111827' }}>
+                <Eye size={16} />
+                <span>{liveStreamHub.filter(item => item.isLive).length} مباشر الآن</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+              {liveStreamHub.map((streamer) => (
+                <button
+                  key={streamer.id}
+                  onClick={() => {
+                    setSelectedLiveStreamer(streamer);
+                    setSelectedLiveVideo(streamer.videos?.[0] || null);
+                  }}
+                  style={{
+                    textAlign: 'right',
+                    border: selectedLiveStreamer?.id === streamer.id ? '2px solid #1877F2' : '1px solid rgba(15,23,42,0.08)',
+                    background: selectedLiveStreamer?.id === streamer.id ? 'rgba(24,119,242,0.1)' : 'rgba(255,255,255,0.85)',
+                    borderRadius: '16px',
+                    padding: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    boxShadow: '0 8px 20px rgba(15,23,42,0.05)'
+                  }}
+                >
+                  <img src={streamer.avatar} alt={streamer.name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: streamer.isLive ? '3px solid #EF4444' : '3px solid #64748B' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ fontSize: '0.95rem' }}>{streamer.name}</strong>
+                      {streamer.isLive ? <span style={{ fontSize: '0.72rem', background: '#EF4444', color: '#fff', padding: '2px 7px', borderRadius: '999px', fontWeight: '800' }}>مباشر</span> : <span style={{ fontSize: '0.72rem', background: '#64748B', color: '#fff', padding: '2px 7px', borderRadius: '999px', fontWeight: '800' }}>مسجل</span>}
+                    </div>
+                    <div style={{ color: 'var(--fb-text-secondary)', fontSize: '0.8rem', marginTop: '3px' }}>{streamer.specialty}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1877F2', fontSize: '0.78rem', marginTop: '4px', fontWeight: '700' }}>
+                      <Users size={14} />
+                      <span>{streamer.viewers} مشاهد</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {selectedLiveStreamer && (
+              <div style={{ marginTop: '16px', display: 'grid', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '900' }}>فيديوهات {selectedLiveStreamer.name}</h3>
+                    <p style={{ margin: '3px 0 0', color: 'var(--fb-text-secondary)', fontSize: '0.85rem' }}>اختر أي فيديو للانتقال إلى تفاصيله أو الدخول إلى البث</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0F766E', fontWeight: '800', fontSize: '0.82rem' }}>
+                    <Clock3 size={15} />
+                    <span>{selectedLiveStreamer.videos?.length || 0} فيديو</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                  {selectedLiveStreamer.videos?.map((video) => (
+                    <button
+                      key={video.id}
+                      onClick={() => setSelectedLiveVideo(video)}
+                      style={{
+                        textAlign: 'right',
+                        border: selectedLiveVideo?.id === video.id ? '2px solid #10B981' : '1px solid rgba(15,23,42,0.08)',
+                        background: selectedLiveVideo?.id === video.id ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.9)',
+                        borderRadius: '14px',
+                        padding: '10px',
+                        cursor: 'pointer',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <img src={video.thumbnail} alt={video.title} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '10px', marginBottom: '8px' }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '800', color: video.status === 'live' ? '#EF4444' : '#0F766E', background: video.status === 'live' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)', padding: '4px 8px', borderRadius: '999px' }}>
+                          {video.status === 'live' ? 'مباشر' : 'مسجل'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--fb-text-secondary)' }}>{video.duration}</span>
+                      </div>
+                      <div style={{ fontWeight: '800', fontSize: '0.9rem', marginBottom: '4px' }}>{video.title}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--fb-text-secondary)', lineHeight: 1.5 }}>{video.description}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {selectedLiveVideo && (
+                  <div style={{ background: 'rgba(15,23,42,0.95)', color: '#fff', borderRadius: '16px', padding: '16px', display: 'grid', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900' }}>{selectedLiveVideo.title}</h4>
+                        <p style={{ margin: '4px 0 0', color: '#CBD5E1', fontSize: '0.85rem' }}>{selectedLiveVideo.description}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setLiveStreamerUser(selectedLiveStreamer);
+                          setIsLiveStreamModalOpen(true);
+                        }}
+                        style={{ border: 'none', background: 'linear-gradient(135deg, #EF4444, #F97316)', color: '#fff', borderRadius: '999px', padding: '10px 14px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                      >
+                        <PlayCircle size={16} />
+                        <span>الدخول إلى البث</span>
+                      </button>
+                    </div>
+                    <div style={{ borderRadius: '14px', padding: '14px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', color: '#FDE68A', fontWeight: '800' }}>
+                        <Radio size={16} />
+                        <span>{selectedLiveVideo.status === 'live' ? 'البث مباشر الآن' : 'فيديو مسجل متاح للمشاهدة'}</span>
+                      </div>
+                      <div style={{ color: '#CBD5E1', fontSize: '0.85rem', lineHeight: 1.7 }}>
+                        عند الضغط على زر الدخول سيتم فتح نافذة البث المباشر داخل التطبيق مع كل التفاعل المتاح للمشاهدين.
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
         {/* 🏷️🔥 شريط قسم العروض المخفضة البارز في صدر الصفحة الرئيسية */}
         {activeTab === 'market' && activeDealsList.length > 0 && (
           <DealsBanner 
@@ -1771,13 +2056,30 @@ export default function App() {
               <p style={{ color: 'var(--fb-text-secondary)', maxWidth: '400px', lineHeight: 1.6, margin: 0 }}>
                 يجب تسجيل الدخول بحسابك أولاً للوصول إلى ملفك الشخصي وإعلاناتك.
               </p>
-              <button
-                className="btn-primary"
-                onClick={() => setIsAuthModalOpen(true)}
-                style={{ fontSize: '1rem', padding: '12px 32px', borderRadius: '12px' }}
-              >
-                🔑 تسجيل الدخول / إنشاء حساب
-              </button>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  className="btn-primary"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  style={{ fontSize: '1rem', padding: '12px 32px', borderRadius: '12px' }}
+                >
+                  🔑 تسجيل الدخول / إنشاء حساب
+                </button>
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  style={{
+                    fontSize: '1rem',
+                    padding: '12px 24px',
+                    borderRadius: '12px',
+                    border: '2px solid #1877F2',
+                    background: 'transparent',
+                    color: 'var(--fb-text-primary)',
+                    fontWeight: '800',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚀 الدخول عبر Auth0
+                </button>
+              </div>
             </div>
           )
         )}
@@ -1845,9 +2147,65 @@ export default function App() {
       />
 
       {/* 2. نافذة تسجيل الدخول بالبريد الإلكتروني */}
+      {authPrompt.open && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.68)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 4000,
+            padding: '20px'
+          }}
+          onClick={() => setAuthPrompt({ open: false, message: '' })}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '440px',
+              background: 'var(--fb-surface, #ffffff)',
+              color: 'var(--fb-text-primary, #111827)',
+              borderRadius: '20px',
+              padding: '24px',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.25)',
+              textAlign: 'center',
+              border: '1px solid var(--fb-divider, #e5e7eb)'
+            }}
+          >
+            <div style={{ fontSize: '2.2rem', marginBottom: '10px' }}>🔐</div>
+            <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: '800' }}>مرحبًا بك في السوق العالمي</h3>
+            <p style={{ margin: '0 0 16px', lineHeight: 1.7, color: 'var(--fb-text-secondary, #6b7280)' }}>{authPrompt.message}</p>
+            <button
+              onClick={() => {
+                setAuthPrompt({ open: false, message: '' });
+                setIsAuthModalOpen(true);
+              }}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #1877F2, #2563EB)',
+                color: '#fff',
+                fontWeight: '800',
+                cursor: 'pointer'
+              }}
+            >
+              متابعة باستخدام Auth0
+            </button>
+          </div>
+        </div>
+      )}
+
       <AuthModal 
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setAuthPrompt({ open: false, message: '' });
+        }}
         onLoginSuccess={handleLoginSuccess}
       />
 
@@ -1872,6 +2230,17 @@ export default function App() {
         currentUser={user}
         streamerUser={liveStreamerUser}
         onSaveRecordedStream={handleSaveRecordedStream}
+        onLike={handleLikeListing}
+        onReport={handleOpenReportModal}
+        onBlock={handleBlockUser}
+        onEdit={handleOpenEditModal}
+        onDelete={handleDeleteListing}
+        onRequestPartnership={handleRequestPartnership}
+        isPartner={checkIsPartner(liveStreamerUser?.id || user?.id, liveStreamerUser?.email || user?.email)}
+        hasPendingPartnership={checkHasPendingPartnership(liveStreamerUser?.id || user?.id, liveStreamerUser?.email || user?.email)}
+        incomingPartnershipNotif={getIncomingPartnershipNotif(liveStreamerUser?.id || user?.id, liveStreamerUser?.email || user?.email)}
+        onAcceptPartnership={handleAcceptPartnership}
+        onViewUserProfile={handleViewUserProfile}
       />
 
       {/* 6. الفوتر الرئيسي لتذييل الموقع وروابط الموثوقية والثقة */}

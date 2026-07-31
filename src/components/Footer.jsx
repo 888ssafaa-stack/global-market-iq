@@ -11,7 +11,8 @@ import {
   Heart, 
   Handshake, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Download
 } from 'lucide-react';
 
 export default function Footer({ onOpenPage }) {
@@ -73,6 +74,28 @@ export default function Footer({ onOpenPage }) {
             <Sparkles size={16} />
             <span>آمن 100% • سريع • شراكات اقتصادية حقيقية</span>
           </div>
+
+          <a
+            href="/app-release.apk"
+            download="app-release.apk"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '14px',
+              padding: '10px 14px',
+              borderRadius: '999px',
+              background: 'linear-gradient(135deg, #10B981, #059669)',
+              color: '#fff',
+              textDecoration: 'none',
+              fontWeight: '800',
+              fontSize: '0.9rem',
+              boxShadow: '0 8px 20px rgba(16, 185, 129, 0.25)',
+            }}
+          >
+            <Download size={16} />
+            <span>تحميل تطبيق Android</span>
+          </a>
         </div>
 
         {/* العمود الثاني: روابط الموثوقية والثقة */}

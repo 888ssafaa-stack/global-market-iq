@@ -17,7 +17,8 @@ import {
   UserCheck2,
   Radio,
   UserPlus,
-  Users
+  Users,
+  PlayCircle
 } from 'lucide-react';
 import ListingCard from './ListingCard';
 import ProfileSettingsModal from './ProfileSettingsModal';
@@ -56,6 +57,8 @@ export default function ProfileView({
   onBackToMarket,
   onRequestPartnership,
   onBlockUser,
+  onReportListing,
+  onViewUserProfile,
   isPartner = false,
   hasPendingPartnership = false,
   incomingPartnershipNotif = null,
@@ -423,16 +426,46 @@ export default function ProfileView({
         ) : (
           <div className="listings-grid">
             {userListings.map((listing) => (
-              <ListingCard
-                key={listing?.id}
-                listing={listing}
-                currentUser={currentUser}
-                onLike={onLike}
-                onEdit={onEditListing}
-                onDelete={onDeleteListing}
-                onToggleDisableComments={onToggleDisableComments}
-                onManagePhotos={onManagePhotos}
-              />
+              <div key={listing?.id} style={{ position: 'relative' }}>
+                {listing?.isLiveRecorded && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    zIndex: 3,
+                    background: 'linear-gradient(135deg, #EF4444, #F97316)',
+                    color: '#fff',
+                    padding: '6px 10px',
+                    borderRadius: '999px',
+                    fontSize: '0.74rem',
+                    fontWeight: '800',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 6px 16px rgba(239, 68, 68, 0.25)'
+                  }}>
+                    <PlayCircle size={14} />
+                    <span>بث مسجل</span>
+                  </div>
+                )}
+                <ListingCard
+                  listing={listing}
+                  currentUser={currentUser}
+                  onLike={onLike}
+                  onEdit={onEditListing}
+                  onDelete={onDeleteListing}
+                  onToggleDisableComments={onToggleDisableComments}
+                  onManagePhotos={onManagePhotos}
+                  onRequestPartnership={onRequestPartnership}
+                  isPartner={isPartner}
+                  hasPendingPartnership={hasPendingPartnership}
+                  incomingPartnershipNotif={incomingPartnershipNotif}
+                  onAcceptPartnership={onAcceptPartnership}
+                  onBlockUser={onBlockUser}
+                  onReportListing={onReportListing}
+                  onViewUserProfile={onViewUserProfile}
+                />
+              </div>
             ))}
           </div>
         )

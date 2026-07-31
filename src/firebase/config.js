@@ -1,5 +1,6 @@
 // src/firebase/config.js
 import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -15,7 +16,10 @@ const firebaseConfig = {
 // تهيئة Firebase
 const app = initializeApp(firebaseConfig);
 
-// قاعدة بيانات Firestore للحفظ السحابي
+// خدمة المصادقة الرسمية لـ Firebase
+export const auth = getAuth(app);
+
+// قاعدة بيانات Firestore
 export const db = getFirestore(app);
 
 export default app;

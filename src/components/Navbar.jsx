@@ -9,6 +9,7 @@ import {
   Sun,
   Bell,
   LogIn,
+  LogOut,
   Check,
   MessageSquare,
   ThumbsUp,
@@ -44,7 +45,7 @@ export default function Navbar({
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchScope, setSearchScope] = useState(userSearchQuery?.trim() ? 'users' : 'listings');
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
 
   const isAppOwner = Boolean(
     user?.role === 'APP_OWNER' || 
@@ -280,7 +281,17 @@ export default function Navbar({
         </button>
 
         {/* زر إضافة إعلان جديد */}
-        <button className="btn-primary" onClick={onOpenCreateModal}>
+        <button 
+          className="btn-primary" 
+          onClick={() => {
+            if (!user?.id) {
+              alert('يرجى تسجيل الدخول أولاً لتتمكن من نشر إعلان جديد والتفاعل مع المجتمع بشكل صحيح.');
+              if (onOpenAuthModal) onOpenAuthModal();
+              return;
+            }
+            if (onOpenCreateModal) onOpenCreateModal();
+          }}
+        >
           <PlusCircle size={18} />
           <span>نشر إعلان</span>
         </button>
@@ -461,7 +472,61 @@ export default function Navbar({
           {darkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        {/* زر تسجيل الدخول / حساب المستخدم */}
+        {!user?.id && (
+          <button
+            type="button"
+            onClick={() => onOpenAuthModal && onOpenAuthModal()}
+            title="تسجيل الدخول أو إنشاء حساب"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 12px',
+              borderRadius: '999px',
+              border: '1px solid #1877F2',
+              background: 'linear-gradient(135deg, #1877F2, #2563EB)',
+              color: '#fff',
+              cursor: 'pointer',
+              fontWeight: '800',
+              fontSize: '0.82rem',
+              boxShadow: '0 4px 12px rgba(24, 119, 242, 0.25)'
+            }}
+          >
+            <LogIn size={16} />
+            <span>دخول</span>
+          </button>
+        )}
+
+        {user?.id ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              const confirmLogout = window.confirm('هل أنت متأكد أنك تريد تسجيل الخروج؟');
+              if (confirmLogout) {
+                logout();
+              }
+            }}
+            title="تسجيل الخروج"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 10px',
+              borderRadius: '999px',
+              border: '1px solid var(--fb-divider)',
+              background: 'var(--fb-surface)',
+              color: 'var(--fb-text-primary)',
+              cursor: 'pointer',
+              fontWeight: '700',
+              fontSize: '0.8rem'
+            }}
+          >
+            <LogOut size={16} />
+            <span>خروج</span>
+          </button>
+        ) : null}
+
         <div 
           className="user-avatar-chip"
           onClick={() => {

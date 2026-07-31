@@ -1,19 +1,31 @@
 // src/context/AuthContext.jsx
 // ═══════════════════════════════════════════════════════════
-// نظام المصادقة العالمي المتقدم بإدارة Auth0
-// Domain: dev-84pkq1gqub766fon.us.auth0.com
-// Client ID: 4bEb45aZ0b6P8Wm3tg8kjsNJq9clpiyK
-// حفظ دائم ومستقر للجلسة في localStorage تحت gm_user_profile و gm_uid
+// نظام مصادقة Firebase الرسمية (Firebase Authentication - 1-Tap Google Sign-In)
+// دمج المصادقة المباشرة عبر حساب Google بضغطة زر واحدة بدون Auth0
+// استمرار الجلسة 100% عبر browserLocalPersistence وتخزين localStorage المباشر
 // ═══════════════════════════════════════════════════════════
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
+import { 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult, 
+  signInWithCredential, 
+  onAuthStateChanged, 
+  signOut, 
+  setPersistence, 
+  browserLocalPersistence 
+} from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { auth, db } from '../firebase/config';
 import { INITIAL_USER } from '../data/mockData';
 
 export const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
+const GOOGLE_CLIENT_ID = '1068894096179-jmb60e6aoqd5m4mgq4sr6k5ee9hv5flq.apps.googleusercontent.com';
 const OWNER_EMAIL = '888ssafaa@gmail.com';
 
 const KEY_UID         = 'gm_uid';
@@ -55,7 +67,6 @@ export const loadUserImages = (uid) => {
   return r;
 };
 
-// ─── حفظ الحساب صراحة تحت المفاتيح المطلوبة ────────────────────
 const saveSessionProfile = (uid, profile) => {
   if (!uid || !profile) return;
   const cleanText = {};
@@ -108,45 +119,44 @@ const fsSave = (uid, profile) => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const {
-    user: auth0User,
-    isAuthenticated: isAuth0Authenticated,
-    isLoading: isAuth0Loading,
-    loginWithRedirect,
-    logout: auth0Logout
-  } = useAuth0();
-
   const [user, setUser] = useState(() => loadSessionProfile());
+  const [loading, setLoading] = useState(true);
   const uidRef = useRef(user?.id || null);
 
-  // ─── المزامنة الفورية مع جلسة Auth0 ─────────────────────────────
+  // ── 1. تفعيل الجلسة الدائمة واستمع لـ Firebase Auth ──────────────
   useEffect(() => {
-    if (isAuth0Authenticated && auth0User) {
-      const uid = `auth0_${auth0User.sub ? auth0User.sub.replace(/[^a-zA-Z0-9]/g, '_') : Date.now()}`;
+    setPersistence(auth, browserLocalPersistence).catch(() => {});
 
-      fsLoad(uid).then((fsData) => {
+    // الالتقاط الهادئ لنتائج إعادة التوجيه
+    getRedirectResult(auth).catch(() => {});
+
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        const uid = fbUser.uid;
+        let fsData = await fsLoad(uid);
         let fullProfile;
+
         if (fsData) {
           fullProfile = enforceRole({
             ...fsData,
             ...loadUserImages(uid),
             id: uid,
-            email: auth0User.email,
-            name: fsData.name || auth0User.name || auth0User.nickname || 'مستخدم Auth0',
-            avatar: fsData.avatar || auth0User.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(auth0User.name || 'A')}&background=1877F2&color=fff`,
-          }, auth0User.email);
+            email: fbUser.email,
+            name: fsData.name || fbUser.displayName || 'مستخدم',
+            avatar: fsData.avatar || fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'G')}&background=1877F2&color=fff`,
+          }, fbUser.email);
         } else {
           fullProfile = enforceRole({
             ...INITIAL_USER,
             id: uid,
-            email: auth0User.email,
-            name: auth0User.name || auth0User.nickname || auth0User.email?.split('@')[0] || 'مستخدم Auth0',
-            avatar: auth0User.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(auth0User.name || 'A')}&background=1877F2&color=fff`,
+            email: fbUser.email,
+            name: fbUser.displayName || fbUser.email?.split('@')[0] || 'مستخدم',
+            avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'G')}&background=1877F2&color=fff`,
             cover: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200',
             governorate: 'بغداد',
             joinedDate: new Date().toLocaleDateString('ar-IQ'),
-            bio: 'مستخدم مسجل عبر منصة Auth0 العالمية'
-          }, auth0User.email);
+            bio: 'مستخدم مسجل عبر حساب Google المباشر'
+          }, fbUser.email);
 
           fsSave(uid, fullProfile);
         }
@@ -156,26 +166,20 @@ export const AuthProvider = ({ children }) => {
         saveSessionProfile(uid, fullProfile);
         window.dispatchEvent(new Event('storage'));
         window.dispatchEvent(new Event('auth_state_change'));
-      });
-    }
-  }, [isAuth0Authenticated, auth0User]);
-
-  // المزامنة مع Firestore عند تحميل الصفحة إن وجد حساب محلي
-  useEffect(() => {
-    const local = loadSessionProfile();
-    if (local?.id) {
-      uidRef.current = local.id;
-      fsLoad(local.id).then((fsData) => {
-        if (fsData) {
-          const merged = enforceRole({ ...local, ...fsData, id: local.id }, fsData.email || local.email);
-          setUser(merged);
-          saveSessionProfile(local.id, merged);
+      } else {
+        const local = loadSessionProfile();
+        if (local) {
+          setUser(local);
+          uidRef.current = local.id;
         }
-      });
-    }
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // ── login المباشر (البريد / الحساب الشخصي) ────────────────
+  // ── login المباشر ─────────────────────────────────────────
   const login = (profileObj) => {
     const uid = profileObj?.id || `user_${Date.now()}`;
     const full = enforceRole({ ...profileObj, id: uid }, profileObj.email);
@@ -188,21 +192,98 @@ export const AuthProvider = ({ children }) => {
     return full;
   };
 
-  // ── loginWithAuth0 المباشر ────────────────────────────────
-  const loginWithAuth0 = () => {
-    loginWithRedirect({
-      authorizationParams: {
-        redirect_uri: window.location.origin,
-      }
-    });
-  };
-
-  // ── loginWithGoogle عبر Auth0 Universal Login ─────────────
+  // ── 2. تسجيل الدخول عبر حساب Google بضغطة زر واحدة (Firebase Auth) ──
   const loginWithGoogle = async () => {
-    loginWithAuth0();
+    setLoading(true);
+    try {
+      await setPersistence(auth, browserLocalPersistence).catch(() => {});
+
+      let fbUser = null;
+
+      // أ) الأجهزة المحمولة الأصيلة (Native Android APK / Capacitor)
+      if (Capacitor.isNativePlatform()) {
+        try {
+          GoogleAuth.initialize({
+            clientId: GOOGLE_CLIENT_ID,
+            scopes: ['profile', 'email'],
+            grantOfflineAccess: true,
+          });
+          const googleUser = await GoogleAuth.signIn();
+          const idToken = googleUser.authentication?.idToken || googleUser.idToken;
+          if (idToken) {
+            const credential = GoogleAuthProvider.credential(idToken);
+            const res = await signInWithCredential(auth, credential);
+            fbUser = res.user;
+          }
+        } catch (nErr) {
+          console.warn('[Native GoogleAuth Warning]:', nErr);
+        }
+      }
+
+      // ب) المتصفحات (Mobile Web & Desktop Web) عبر Firebase GoogleAuthProvider
+      if (!fbUser) {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        try {
+          const result = await signInWithPopup(auth, provider);
+          fbUser = result.user;
+        } catch (popupErr) {
+          if (popupErr.code === 'auth/initial-state-not-found' || popupErr.code === 'auth/popup-blocked') {
+            console.warn('[Firebase Auth] Popup blocked or state missing, using redirect...', popupErr.message);
+            await signInWithRedirect(auth, provider);
+            return null;
+          }
+          throw popupErr;
+        }
+      }
+
+      if (!fbUser) return null;
+
+      const uid = fbUser.uid;
+      let fsData = await fsLoad(uid);
+      let fullProfile;
+
+      if (fsData) {
+        fullProfile = enforceRole({
+          ...fsData,
+          ...loadUserImages(uid),
+          id: uid,
+          email: fbUser.email,
+          name: fsData.name || fbUser.displayName || 'مستخدم',
+          avatar: fsData.avatar || fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'G')}&background=1877F2&color=fff`,
+        }, fbUser.email);
+      } else {
+        fullProfile = enforceRole({
+          ...INITIAL_USER,
+          id: uid,
+          email: fbUser.email,
+          name: fbUser.displayName || fbUser.email?.split('@')[0] || 'مستخدم',
+          avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'G')}&background=1877F2&color=fff`,
+          cover: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200',
+          governorate: 'بغداد',
+          joinedDate: new Date().toLocaleDateString('ar-IQ'),
+          bio: 'مستخدم مسجل عبر حساب Google المباشر'
+        }, fbUser.email);
+
+        fsSave(uid, fullProfile);
+      }
+
+      setUser(fullProfile);
+      uidRef.current = uid;
+      saveSessionProfile(uid, fullProfile);
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('auth_state_change'));
+      return fullProfile;
+
+    } catch (error) {
+      console.error('[Firebase Google Sign-In Error]:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ── updateUser (تحديث البيانات الشخصية) ─────────────────
+  // ── updateUser ───────────────────────────────────────────
   const updateUser = async (updatedFields) => {
     const uid = user?.id || uidRef.current;
     if (!uid) return null;
@@ -216,9 +297,13 @@ export const AuthProvider = ({ children }) => {
     return merged;
   };
 
-  // ── logout (تسجيل الخروج النظيف بـ Auth0) ───────────────────
+  // ── logout (تسجيل الخروج بـ Firebase) ─────────────────────
   const logout = async () => {
     const uid = user?.id || uidRef.current;
+    try {
+      await signOut(auth);
+    } catch (_) {}
+
     setUser(null);
     uidRef.current = null;
     lsDel(KEY_UID, KEY_FULL_USER);
@@ -227,20 +312,15 @@ export const AuthProvider = ({ children }) => {
     }
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new Event('auth_state_change'));
-
-    if (isAuth0Authenticated) {
-      auth0Logout({ logoutParams: { returnTo: window.location.origin } });
-    }
   };
 
   return (
     <AuthContext.Provider value={{
       user,
       firebaseUser: user ? { uid: user.id, email: user.email } : null,
-      loading: isAuth0Loading,
+      loading,
       isLoggedIn: Boolean(user?.id),
       login,
-      loginWithAuth0,
       loginWithGoogle,
       logout,
       updateUser,

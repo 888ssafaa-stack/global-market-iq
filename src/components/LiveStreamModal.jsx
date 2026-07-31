@@ -11,7 +11,14 @@ import {
   Radio, 
   Flame, 
   Sparkles,
-  Share2
+  Share2,
+  ThumbsUp,
+  MessageSquare,
+  Flag,
+  Ban,
+  Handshake,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 
 export default function LiveStreamModal({
@@ -19,7 +26,18 @@ export default function LiveStreamModal({
   onClose,
   currentUser,
   streamerUser,
-  onSaveRecordedStream
+  onSaveRecordedStream,
+  onLike,
+  onReport,
+  onBlock,
+  onEdit,
+  onDelete,
+  onRequestPartnership,
+  isPartner = false,
+  hasPendingPartnership = false,
+  incomingPartnershipNotif = null,
+  onAcceptPartnership,
+  onViewUserProfile
 }) {
   const [isLive, setIsLive] = useState(false);
   const [cameraActive, setCameraActive] = useState(true);
@@ -29,6 +47,8 @@ export default function LiveStreamModal({
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [floatingHearts, setFloatingHearts] = useState([]);
+  const [isLiked, setIsLiked] = useState(false);
+  const [showComments, setShowComments] = useState(true);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -129,14 +149,18 @@ export default function LiveStreamModal({
             'https://assets.mixkit.co/videos/preview/mixkit-recording-a-live-stream-video-41487-large.mp4',
             'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800'
           ]
-        });
+        }, activeStreamer || currentUser);
       }
       onClose();
     }
   };
 
   const handleSendHeart = () => {
-    setHeartsCount((prev) => prev + 1);
+    if (!isLiked) {
+      setHeartsCount((prev) => prev + 1);
+      setIsLiked(true);
+      if (onLike) onLike(activeStreamer?.id || currentUser?.id);
+    }
     const newH = {
       id: `h_${Date.now()}_${Math.random()}`,
       left: Math.random() * 80 + 10
@@ -219,6 +243,66 @@ export default function LiveStreamModal({
           >
             <X size={18} />
           </button>
+        </div>
+
+        <div style={{ padding: '14px 18px 0', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <button onClick={handleSendHeart} style={{ border: 'none', background: isLiked ? '#1877F2' : 'rgba(24,119,242,0.12)', color: isLiked ? '#fff' : '#1877F2', borderRadius: '999px', padding: '8px 12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ThumbsUp size={16} fill={isLiked ? '#fff' : 'none'} />
+            <span>{heartsCount} إعجاب</span>
+          </button>
+
+          <button onClick={() => setShowComments((prev) => !prev)} style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: '#fff', borderRadius: '999px', padding: '8px 12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MessageSquare size={16} />
+            <span>{showComments ? 'إخفاء التعليقات' : 'التعليقات'}</span>
+          </button>
+
+          {!isStreamer && currentUser && (
+            <>
+              <button onClick={() => onReport ? onReport(activeStreamer) : alert('تم الإبلاغ عن هذا البث بنجاح')} style={{ border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.12)', color: '#FCA5A5', borderRadius: '999px', padding: '8px 12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Flag size={16} />
+                <span>إبلاغ</span>
+              </button>
+
+              <button onClick={() => onBlock ? onBlock(activeStreamer?.id, activeStreamer?.name) : alert('تم حظر هذا المستخدم')} style={{ border: '1px solid rgba(245,158,11,0.35)', background: 'rgba(245,158,11,0.12)', color: '#FCD34D', borderRadius: '999px', padding: '8px 12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Ban size={16} />
+                <span>حظر</span>
+              </button>
+            </>
+          )}
+
+          {!isStreamer && currentUser && (
+            !isPartner ? (
+              incomingPartnershipNotif ? (
+                <button onClick={() => onAcceptPartnership && onAcceptPartnership(incomingPartnershipNotif)} style={{ border: 'none', background: 'linear-gradient(135deg, #10B981, #059669)', color: '#fff', borderRadius: '999px', padding: '8px 12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Handshake size={16} />
+                  <span>قبول شراكة</span>
+                </button>
+              ) : hasPendingPartnership ? (
+                <span style={{ background: 'rgba(255,255,255,0.08)', color: '#CBD5E1', borderRadius: '999px', padding: '8px 12px', fontWeight: '700' }}>طلب شراكة قيد الانتظار</span>
+              ) : (
+                <button onClick={() => onRequestPartnership && onRequestPartnership(activeStreamer?.id, activeStreamer?.name, activeStreamer?.email)} style={{ border: '1px solid rgba(16,185,129,0.35)', background: 'rgba(16,185,129,0.12)', color: '#A7F3D0', borderRadius: '999px', padding: '8px 12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Handshake size={16} />
+                  <span>طلب شراكة</span>
+                </button>
+              )
+            ) : (
+              <span style={{ background: 'rgba(16,185,129,0.16)', color: '#A7F3D0', borderRadius: '999px', padding: '8px 12px', fontWeight: '700' }}>شريك اقتصادي</span>
+            )
+          )}
+
+          {isStreamer && (
+            <>
+              <button onClick={() => onEdit ? onEdit(activeStreamer) : alert('سيتم إضافة تعديل هذا البث قريباً')} style={{ border: '1px solid rgba(24,119,242,0.35)', background: 'rgba(24,119,242,0.12)', color: '#93C5FD', borderRadius: '999px', padding: '8px 12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Edit3 size={16} />
+                <span>تعديل</span>
+              </button>
+
+              <button onClick={() => onDelete ? onDelete(activeStreamer) : onClose()} style={{ border: '1px solid rgba(239,68,68,0.35)', background: 'rgba(239,68,68,0.12)', color: '#FCA5A5', borderRadius: '999px', padding: '8px 12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Trash2 size={16} />
+                <span>حذف</span>
+              </button>
+            </>
+          )}
         </div>
 
         {/* شاشة البث المباشر والفيديو */}
@@ -340,97 +424,99 @@ export default function LiveStreamModal({
         </div>
 
         {/* قسم الدردشة والتفاعلات الحية */}
-        <div style={{ padding: '16px', background: '#0f172a', height: '240px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              💬 الدردشة المباشرة ({comments.length})
-            </span>
-            <button 
-              onClick={handleSendHeart}
-              style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#EF4444',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                padding: '4px 12px',
-                borderRadius: '50px',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                fontWeight: '800',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Heart size={14} fill="#EF4444" />
-              <span>{heartsCount}</span>
-            </button>
-          </div>
+        {showComments && (
+          <div style={{ padding: '16px', background: '#0f172a', height: '240px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: '800', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                💬 الدردشة المباشرة ({comments.length})
+              </span>
+              <button 
+                onClick={handleSendHeart}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  color: '#EF4444',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  padding: '4px 12px',
+                  borderRadius: '50px',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Heart size={14} fill="#EF4444" />
+                <span>{heartsCount}</span>
+              </button>
+            </div>
 
-          {/* قائمة التعليقات */}
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
-            {comments.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#64748B', fontSize: '0.82rem', margin: 'auto' }}>
-                لا توجد تعليقات حتى الآن. كن أول من يتفاعل في البث! 🎉
-              </div>
-            ) : (
-              comments.map((c) => (
-                <div 
-                  key={c.id} 
-                  style={{
-                    background: c.isSystem ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    fontSize: '0.82rem',
-                    borderRight: c.isSystem ? '3px solid #38BDF8' : 'none'
-                  }}
-                >
-                  {!c.isSystem && (
-                    <span style={{ fontWeight: '800', color: '#38BDF8', marginLeft: '6px' }}>
-                      {c.userName}:
-                    </span>
-                  )}
-                  <span>{c.text}</span>
+            {/* قائمة التعليقات */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+              {comments.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#64748B', fontSize: '0.82rem', margin: 'auto' }}>
+                  لا توجد تعليقات حتى الآن. كن أول من يتفاعل في البث! 🎉
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                comments.map((c) => (
+                  <div 
+                    key={c.id} 
+                    style={{
+                      background: c.isSystem ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255,255,255,0.05)',
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      fontSize: '0.82rem',
+                      borderRight: c.isSystem ? '3px solid #38BDF8' : 'none'
+                    }}
+                  >
+                    {!c.isSystem && (
+                      <span style={{ fontWeight: '800', color: '#38BDF8', marginLeft: '6px' }}>
+                        {c.userName}:
+                      </span>
+                    )}
+                    <span>{c.text}</span>
+                  </div>
+                ))
+              )}
+            </div>
 
-          {/* إدخال تعليق جديد */}
-          <form onSubmit={handleSendComment} style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-            <input
-              type="text"
-              placeholder="اكتب تعليقاً في البث المباشر..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              style={{
-                flex: 1,
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                color: '#fff',
-                padding: '8px 14px',
-                borderRadius: '10px',
-                fontSize: '0.85rem',
-                outline: 'none'
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                background: '#1877F2',
-                color: '#fff',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <Send size={16} />
-            </button>
-          </form>
-        </div>
+            {/* إدخال تعليق جديد */}
+            <form onSubmit={handleSendComment} style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <input
+                type="text"
+                placeholder="اكتب تعليقاً في البث المباشر..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  background: '#1877F2',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <Send size={16} />
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
