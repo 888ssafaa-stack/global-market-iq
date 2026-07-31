@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 // ═══════════════════════════════════════════════════════════
 // نظام مصادقة Firebase الرسمية (Firebase Authentication - 1-Tap Google Sign-In)
-// دمج المصادقة المباشرة عبر حساب Google بضغطة زر واحدة بدون Auth0
+// دمج المصادقة المباشرة عبر حساب Google بضغطة زر واحدة (Firebase Authentication)
 // استمرار الجلسة 100% عبر browserLocalPersistence وتخزين localStorage المباشر
 // ═══════════════════════════════════════════════════════════
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
