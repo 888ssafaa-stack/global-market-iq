@@ -14,6 +14,7 @@ import {
   Compass,
   Flame,
   Clock,
+  Calendar,
   Tag,
   Percent
 } from 'lucide-react';
@@ -47,13 +48,16 @@ export default function ListingModal({
     governorate: 'بغداد',
     area: '',
     nearestLandmark: '',
+    shopLocationUrl: '',
     phone: currentUser?.phone || '',
     condition: 'جديد',
     images: [],
     isDeal: defaultIsDeal,
     originalPrice: '',
     dealStartDate: getNowISO(),
-    dealEndDate: getTomorrowISO()
+    dealEndDate: getTomorrowISO(),
+    isScheduled: false,
+    scheduledPublishDate: getNowISO()
   });
 
   const [newImageUrl, setNewImageUrl] = useState('');
@@ -72,13 +76,16 @@ export default function ListingModal({
         governorate: editingListing.governorate || 'بغداد',
         area: editingListing.area || '',
         nearestLandmark: editingListing.nearestLandmark || '',
+        shopLocationUrl: editingListing.shopLocationUrl || '',
         phone: editingListing.phone || currentUser?.phone || '',
         condition: editingListing.condition || 'جديد',
         images: editingListing.images ? [...editingListing.images] : [],
         isDeal: Boolean(editingListing.isDeal),
         originalPrice: editingListing.originalPrice || '',
         dealStartDate: editingListing.dealStartDate ? editingListing.dealStartDate.slice(0, 16) : getNowISO(),
-        dealEndDate: editingListing.dealEndDate ? editingListing.dealEndDate.slice(0, 16) : getTomorrowISO()
+        dealEndDate: editingListing.dealEndDate ? editingListing.dealEndDate.slice(0, 16) : getTomorrowISO(),
+        isScheduled: Boolean(editingListing.isScheduled),
+        scheduledPublishDate: editingListing.scheduledPublishDate ? editingListing.scheduledPublishDate.slice(0, 16) : getNowISO()
       });
     } else {
       setFormData({
@@ -90,6 +97,7 @@ export default function ListingModal({
         governorate: 'بغداد',
         area: '',
         nearestLandmark: '',
+        shopLocationUrl: '',
         phone: currentUser?.phone || '',
         condition: 'جديد',
         images: [
@@ -98,7 +106,9 @@ export default function ListingModal({
         isDeal: Boolean(defaultIsDeal),
         originalPrice: '',
         dealStartDate: getNowISO(),
-        dealEndDate: getTomorrowISO()
+        dealEndDate: getTomorrowISO(),
+        isScheduled: false,
+        scheduledPublishDate: getNowISO()
       });
     }
     setNewImageUrl('');
@@ -587,6 +597,24 @@ export default function ListingModal({
                   </div>
                 </div>
 
+                {/* حقل موقع المحل أو الشركة على الخريطة */}
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MapPin size={15} color="#E41E3F" />
+                    <span>موقع المحل / الشركة على الخريطة (اختياري)</span>
+                  </label>
+                  <input 
+                    type="url" 
+                    className="form-input" 
+                    placeholder="رابط Google Maps أو أي خريطة أخرى..."
+                    value={formData.shopLocationUrl}
+                    onChange={(e) => setFormData({ ...formData, shopLocationUrl: e.target.value })}
+                  />
+                  <small style={{ color: '#6B7280', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>
+                    تستطيع لصق رابط موقعك من خريطة Google Maps أو Apple Maps لتسهيل وصول العملاء إليك مباشرة.
+                  </small>
+                </div>
+
                 <div className="form-group">
                   <label>تفاصيل ووصف الإعلان</label>
                   <textarea 
@@ -596,6 +624,88 @@ export default function ListingModal({
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
+                </div>
+
+                {/* 📅 خيار توقيت ونشر الإعلان: فوراً أم مجدول في وقت مستقبل */}
+                <div style={{
+                  background: 'rgba(24, 119, 242, 0.05)',
+                  border: '1px solid rgba(24, 119, 242, 0.25)',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  marginTop: '12px',
+                  marginBottom: '16px'
+                }}>
+                  <label style={{ display: 'block', fontWeight: '800', fontSize: '0.92rem', color: '#1877F2', marginBottom: '10px' }}>
+                    📅 موعد نشر وتفعيل الإعلان
+                  </label>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <label style={{
+                      flex: 1,
+                      minWidth: '170px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: !formData.isScheduled ? '2px solid #1877F2' : '1px solid #CBD5E1',
+                      background: !formData.isScheduled ? '#EFF6FF' : '#FFFFFF',
+                      cursor: 'pointer',
+                      fontWeight: '700',
+                      fontSize: '13.5px',
+                      color: !formData.isScheduled ? '#1E40AF' : '#475569'
+                    }}>
+                      <input
+                        type="radio"
+                        name="publishScheduleType"
+                        checked={!formData.isScheduled}
+                        onChange={() => setFormData({ ...formData, isScheduled: false })}
+                      />
+                      <span>⚡ نزول الإعلان فوراً</span>
+                    </label>
+
+                    <label style={{
+                      flex: 1,
+                      minWidth: '170px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: formData.isScheduled ? '2px solid #1877F2' : '1px solid #CBD5E1',
+                      background: formData.isScheduled ? '#EFF6FF' : '#FFFFFF',
+                      cursor: 'pointer',
+                      fontWeight: '700',
+                      fontSize: '13.5px',
+                      color: formData.isScheduled ? '#1E40AF' : '#475569'
+                    }}>
+                      <input
+                        type="radio"
+                        name="publishScheduleType"
+                        checked={formData.isScheduled}
+                        onChange={() => setFormData({ ...formData, isScheduled: true })}
+                      />
+                      <span>📅 تحديد وقت وتاريخ مستقبل</span>
+                    </label>
+                  </div>
+
+                  {formData.isScheduled && (
+                    <div style={{ marginTop: '12px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                        ⏰ التوقيت والتاريخ المستقبلي لنزول الإعلان تلقائياً
+                      </label>
+                      <input
+                        type="datetime-local"
+                        className="form-input"
+                        value={formData.scheduledPublishDate}
+                        onChange={(e) => setFormData({ ...formData, scheduledPublishDate: e.target.value })}
+                        required={formData.isScheduled}
+                        style={{ border: '1px solid #1877F2', fontWeight: '600' }}
+                      />
+                      <small style={{ color: '#64748B', fontSize: '0.76rem', marginTop: '4px', display: 'block' }}>
+                        سيبقى الإعلان محفوظاً وسينزل تلقائياً للمستخدمين في هذا التوقيت والتاريخ المحدد.
+                      </small>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>

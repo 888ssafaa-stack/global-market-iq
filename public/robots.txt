@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://global-market-iq.vercel.app/sitemap.xml
+# Sitemap
+Sitemap: https://www.global-market-iq.com/sitemap.xml
+
+# Block build artifacts
+Disallow: /android/
+Disallow: /node_modules/

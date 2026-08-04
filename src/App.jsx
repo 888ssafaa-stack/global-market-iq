@@ -14,6 +14,7 @@ import ToastNotification from './components/ToastNotification';
 import Footer from './components/Footer';
 import FooterPagesModal from './components/FooterPagesModal';
 import LiveStreamModal from './components/LiveStreamModal';
+import UpdateModal from './components/UpdateModal';
 import { db } from './firebase/config';
 import { 
   collection, doc, setDoc, addDoc, deleteDoc, onSnapshot, serverTimestamp 
@@ -1500,6 +1501,15 @@ export default function App() {
         if (!isOwner && !isRealOwner) return false;
       }
 
+      // فلترة الإعلانات المجدولة: إذا كان الإعلان مجدولاً وتاريخ النشر لم يأتِ بعد، يظهر فقط لصاحب الإعلان أو للآدمن
+      if (item.isScheduled && item.scheduledPublishDate) {
+        const scheduledTimeMs = new Date(item.scheduledPublishDate).getTime();
+        const isOwner = user?.id === item.userId || isRealOwner;
+        if (scheduledTimeMs > nowMs && !isOwner) {
+          return false;
+        }
+      }
+
       // إذا كنا في تبويب العروض المخفضة
       if (activeTab === 'deals') {
         if (!item.isDeal) return false;
@@ -2277,6 +2287,9 @@ export default function App() {
         onClose={() => setActiveFooterPage(null)} 
         onNavigate={(page) => setActiveFooterPage(page)} 
       />
+
+      {/* 8. نظام الفحص التلقائي للتحديثات الفورية للتطبيق (In-App Update Checker) */}
+      <UpdateModal />
     </div>
   );
 }

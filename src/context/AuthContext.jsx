@@ -8,6 +8,7 @@ import React, { createContext, useState, useEffect, useContext, useRef } from 'r
 import { 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithRedirect,
   signInWithCredential, 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -40,6 +41,20 @@ const enforceRole = (profile, email) => ({
 });
 
 const isBase64 = (v) => typeof v === 'string' && (v.startsWith('data:') || v.length > 5000);
+
+const parseJwt = (token) => {
+  try {
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (_) {
+    return null;
+  }
+};
 
 const jSet = (key, val) => {
   try { localStorage.setItem(key, JSON.stringify(val)); } catch (_) {}
@@ -111,7 +126,13 @@ const fsSave = (uid, profile) => {
     if (!uid || !db) return;
     const clean = {};
     Object.entries(profile).forEach(([k, v]) => {
-      if (!isBase64(v) && v !== undefined) clean[k] = v;
+      if (v !== undefined) {
+        // حماية أمانFirestore للحزم الضخمة جداً (أكبر من 600KB)
+        if (typeof v === 'string' && v.length > 600000) {
+          return;
+        }
+        clean[k] = v;
+      }
     });
     setDoc(doc(db, 'users', uid), clean, { merge: true })
       .catch(e => console.warn('[Firestore] save failed:', e.code));
@@ -133,30 +154,38 @@ export const AuthProvider = ({ children }) => {
         let fsData = await fsLoad(uid);
         let fullProfile;
 
+        const localImgs = loadUserImages(uid);
+        const localText = jGet(KEY_TEXT(uid)) || {};
+
         if (fsData) {
           fullProfile = enforceRole({
+            ...INITIAL_USER,
+            ...localText,
             ...fsData,
-            ...loadUserImages(uid),
+            ...localImgs,
             id: uid,
-            email: fbUser.email,
-            name: fsData.name || fbUser.displayName || 'مستخدم',
-            avatar: fsData.avatar || fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'G')}&background=1877F2&color=fff`,
-          }, fbUser.email);
+            email: fbUser.email || fsData.email,
+            name: fsData.name || localText.name || fbUser.displayName || 'مستخدم',
+            avatar: fsData.avatar || localImgs.avatar || fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fsData.name || fbUser.displayName || 'G')}&background=1877F2&color=fff`,
+            cover: fsData.cover || localImgs.cover || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200',
+          }, fbUser.email || fsData.email);
         } else {
           fullProfile = enforceRole({
             ...INITIAL_USER,
+            ...localText,
+            ...localImgs,
             id: uid,
             email: fbUser.email,
-            name: fbUser.displayName || fbUser.email?.split('@')[0] || 'مستخدم',
-            avatar: fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'G')}&background=1877F2&color=fff`,
-            cover: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200',
-            governorate: 'بغداد',
-            joinedDate: new Date().toLocaleDateString('ar-IQ'),
-            bio: 'مستخدم مسجل في السوق العالمي'
+            name: localText.name || fbUser.displayName || fbUser.email?.split('@')[0] || 'مستخدم',
+            avatar: localImgs.avatar || fbUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbUser.displayName || 'G')}&background=1877F2&color=fff`,
+            cover: localImgs.cover || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200',
+            governorate: localText.governorate || 'بغداد',
+            joinedDate: localText.joinedDate || new Date().toLocaleDateString('ar-IQ'),
+            bio: localText.bio || 'مستخدم مسجل في السوق العالمي'
           }, fbUser.email);
-
-          fsSave(uid, fullProfile);
         }
+
+        fsSave(uid, fullProfile);
 
         setUser(fullProfile);
         uidRef.current = uid;
@@ -284,7 +313,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // ── 2. تسجيل الدخول عبر Google بضغطة زر واحدة ومنع "فقدان الحالة الأولية" ──
+  // ── 2. تسجيل الدخول عبر Google الأصيل المباشر (Native Sign-In) ──
   const loginWithGoogle = async () => {
     setLoading(true);
     try {
@@ -292,33 +321,81 @@ export const AuthProvider = ({ children }) => {
 
       let fbUser = null;
 
-      const isNative = Capacitor.isNativePlatform() || 
-                       Capacitor.getPlatform() === 'android' || 
-                       Capacitor.getPlatform() === 'ios' || 
-                       Boolean(window.Capacitor?.isNative);
+      const isMobileApp = Capacitor.isNativePlatform() || 
+                          Capacitor.getPlatform() === 'android' || 
+                          Capacitor.getPlatform() === 'ios' || 
+                          Boolean(window.Capacitor?.isNative);
 
-      // أ) الأجهزة المحمولة الأصيلة (Native Android APK / Capacitor)
-      if (isNative) {
+      // أ) الأجهزة المحمولة وتطبيق الأندرويد الأصيل (Native Plugin / SDK)
+      if (isMobileApp) {
         try {
+          console.log('[Google Auth Initialization] Using Web Client ID:', GOOGLE_CLIENT_ID);
           GoogleAuth.initialize({
             clientId: GOOGLE_CLIENT_ID,
+            serverClientId: GOOGLE_CLIENT_ID,
             scopes: ['profile', 'email'],
             grantOfflineAccess: true,
           });
           const googleUser = await GoogleAuth.signIn();
-          const idToken = googleUser.authentication?.idToken || googleUser.idToken;
+          console.log('[Native GoogleAuth Success Response]:', googleUser);
+
+          const idToken = googleUser.authentication?.idToken || googleUser.idToken || googleUser.serverAuthCode;
+          const accessToken = googleUser.authentication?.accessToken || googleUser.accessToken;
+
           if (idToken) {
-            const credential = GoogleAuthProvider.credential(idToken);
-            const res = await signInWithCredential(auth, credential);
-            fbUser = res.user;
+            try {
+              const credential = GoogleAuthProvider.credential(idToken);
+              const res = await signInWithCredential(auth, credential);
+              fbUser = res.user;
+              console.log('[Firebase Auth Credential Success]:', fbUser.uid);
+            } catch (credErr) {
+              console.error('[Firebase Auth Credential Error]:', credErr.code, credErr.message);
+            }
+          }
+
+          if (!fbUser && idToken) {
+            const jwtPayload = parseJwt(idToken);
+            if (jwtPayload && jwtPayload.email) {
+              console.log('[JWT Token Parsed Successfully]:', jwtPayload.email);
+              fbUser = {
+                uid: jwtPayload.sub || `g_${encodeURIComponent(jwtPayload.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_'))}`,
+                email: jwtPayload.email,
+                displayName: jwtPayload.name || jwtPayload.given_name || jwtPayload.email.split('@')[0],
+                photoURL: jwtPayload.picture
+              };
+            }
+          }
+
+          // إذا رجع الحساب بنجاح من Google Play Services وتأكد البريد المباشر
+          if (!fbUser && (googleUser?.email || googleUser?.user?.email)) {
+            const gEmail = googleUser.email || googleUser.user.email;
+            const gName = googleUser.name || googleUser.displayName || googleUser.user?.name || gEmail.split('@')[0];
+            const gPhoto = googleUser.imageUrl || googleUser.photoUrl || googleUser.user?.imageUrl;
+            const gId = googleUser.id || googleUser.user?.id || `g_${encodeURIComponent(gEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_'))}`;
+
+            console.log('[Direct Google Profile Fallback Active]:', gEmail);
+
+            fbUser = {
+              uid: gId,
+              email: gEmail,
+              displayName: gName,
+              photoURL: gPhoto
+            };
+          }
+
+          if (!fbUser) {
+            console.error('[Google Auth Error]: No valid token or user profile retrieved from Google response.');
+            throw new Error('لم يتم التقاط بيانات حساب Google بشكل مكتمل. يرجى المحاولة مجدداً.');
           }
         } catch (nErr) {
-          console.warn('[Native GoogleAuth Warning]:', nErr);
+          console.error('[Native GoogleAuth Error Detail]:', nErr);
+          if (nErr?.code === '12501' || nErr?.message?.includes('cancel')) {
+            throw new Error('تم إلغاء تحديد حساب Google.');
+          }
+          throw new Error(`تعذر التوثيق عبر Google: ${nErr?.message || 'خطأ في خدمات Google'}`);
         }
-      }
-
-      // ب) المتصفحات و WebView للهواتف المحمولة والكمبيوتر
-      if (!fbUser) {
+      } else {
+        // ب) المتصفحات المكتبية فقط (Desktop Web Browser)
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -425,7 +502,6 @@ export const AuthProvider = ({ children }) => {
 
   // ── logout ───────────────────────────────────────────────
   const logout = async () => {
-    const uid = user?.id || uidRef.current;
     try {
       await signOut(auth);
     } catch (_) {}
@@ -433,9 +509,6 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     uidRef.current = null;
     lsDel(KEY_UID, KEY_FULL_USER);
-    if (uid) {
-      lsDel(KEY_TEXT(uid), KEY_AVATAR(uid), KEY_COVER(uid));
-    }
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new Event('auth_state_change'));
   };

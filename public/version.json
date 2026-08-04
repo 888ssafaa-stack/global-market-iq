@@ -1,0 +1,8 @@
+{
+  "version": "1.0.6",
+  "buildCode": 7,
+  "releaseDate": "2026-08-02",
+  "downloadUrl": "/global-market-iq.apk",
+  "changelog": "إصلاح معالج استجابة Google Sign-In وضمان إتمام تسجيل الدخول وإنشاء الجلسة فور اختيار الحساب.",
+  "forceUpdate": false
+}

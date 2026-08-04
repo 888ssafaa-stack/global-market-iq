@@ -15,6 +15,8 @@ import {
   Bed,
   Dog,
   Gem,
+  Beef,
+  GraduationCap,
   MoreHorizontal
 } from 'lucide-react';
 
@@ -33,6 +35,8 @@ const ICON_MAP = {
   Bed,
   Dog,
   Gem,
+  Beef,
+  GraduationCap,
   MoreHorizontal
 };
 

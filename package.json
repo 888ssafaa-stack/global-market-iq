@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"import('fs').then(fs => { fs.copyFileSync('public/sitemap.xml', 'dist/sitemap.xml'); if(fs.existsSync('public/app.apk')) fs.copyFileSync('public/app.apk', 'dist/app.apk'); if(fs.existsSync('public/global-market-iq.apk')) fs.copyFileSync('public/global-market-iq.apk', 'dist/global-market-iq.apk'); })\"",
+    "build": "vite build && node -e \"import('fs').then(fs => { fs.copyFileSync('public/sitemap.xml', 'dist/sitemap.xml'); if(fs.existsSync('public/version.json')) fs.copyFileSync('public/version.json', 'dist/version.json'); if(fs.existsSync('public/app.apk')) fs.copyFileSync('public/app.apk', 'dist/app.apk'); if(fs.existsSync('public/global-market-iq.apk')) fs.copyFileSync('public/global-market-iq.apk', 'dist/global-market-iq.apk'); })\"",
     "lint": "oxlint",
     "preview": "vite preview"
   },

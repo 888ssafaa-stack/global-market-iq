@@ -1,3 +1,5 @@
-android/app/build/
-*.apk
-public/*.apk
+*.aab
+public/*.aab
+android/
+node_modules/
+.git/

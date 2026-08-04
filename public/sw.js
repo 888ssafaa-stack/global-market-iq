@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gm-iq-v3';
+const CACHE_NAME = 'gm-iq-v1.0.6';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

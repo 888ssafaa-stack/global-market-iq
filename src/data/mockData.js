@@ -1,4 +1,4 @@
-// 14 قسم رئيسي شاملاً المفروشات، الحيوانات، والمصوغات الذهبية
+// 17 قسم رئيسي شاملاً المفروشات، الحيوانات، الثروة الحيوانية، التعليم، والمصوغات الذهبية
 export const CATEGORIES = [
   { id: 'real_estate', name: 'عقارات', icon: 'Home', emoji: '🏠', color: '#1877F2' },
   { id: 'cars', name: 'سيارات', icon: 'Car', emoji: '🚗', color: '#E41E3F' },
@@ -7,6 +7,8 @@ export const CATEGORIES = [
   { id: 'electronics', name: 'أجهزة إلكترونية', icon: 'Smartphone', emoji: '📱', color: '#8B5CF6' },
   { id: 'furnishings', name: 'المفروشات', icon: 'Bed', emoji: '🛋️', color: '#10B981' },
   { id: 'animals', name: 'الحيوانات', icon: 'Dog', emoji: '🐕', color: '#F59E0B' },
+  { id: 'livestock', name: 'الثروة الحيوانية', icon: 'Beef', emoji: '🐄', color: '#78350F' },
+  { id: 'education', name: 'التعليم', icon: 'GraduationCap', emoji: '🎓', color: '#0EA5E9' },
   { id: 'gold_jewelry', name: 'المصوغات الذهبية', icon: 'Gem', emoji: '💎', color: '#EAB308' },
   { id: 'construction', name: 'مواد بناء', icon: 'Hammer', emoji: '🏗️', color: '#6B7280' },
   { id: 'craftsmen', name: 'حرفيين', icon: 'Wrench', emoji: '🛠️', color: '#EC4899' },

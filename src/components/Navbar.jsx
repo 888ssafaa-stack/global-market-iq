@@ -22,6 +22,7 @@ import {
   Download
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext.jsx';
+import DigitalClock from './DigitalClock.jsx';
 
 export default function Navbar({
   activeTab,
@@ -106,6 +107,9 @@ export default function Navbar({
             <span className="logo-subtext">Global Market IQ</span>
           </div>
         </button>
+
+        {/* 🕒 الساعة الرقمية البارزة بالتاريخ الميلادي */}
+        <DigitalClock />
 
         {/* 🔍 شريط البحث الذكي المزدوج (المنتجات + المستخدمون) */}
         <div className="search-bar-unified" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -354,24 +358,9 @@ export default function Navbar({
             )}
           </button>
 
-          {/* قائمة الإشعارات المنسدلة */}
+          {/* قائمة الإشعارات المنسدلة المعتمة وغير الشفافة بالكامل */}
           {showNotifications && (
-            <div 
-              style={{
-                position: 'absolute',
-                top: '48px',
-                left: '0',
-                width: '320px',
-                maxHeight: '400px',
-                backgroundColor: 'var(--fb-surface)',
-                borderRadius: '12px',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
-                border: '1px solid var(--fb-divider)',
-                zIndex: 1000,
-                overflowY: 'auto',
-                padding: '12px'
-              }}
-            >
+            <div className="notifications-dropdown">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid var(--fb-divider)' }}>
                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>الإشعارات ({unreadCount})</h4>
                 {onSendTestNotification && (
@@ -402,17 +391,7 @@ export default function Navbar({
                     <div 
                       key={notif.id}
                       onClick={() => onNotificationClick && onNotificationClick(notif)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '10px',
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        backgroundColor: notif.isRead ? 'transparent' : 'var(--fb-blue-light)',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        transition: 'background 0.2s ease'
-                      }}
+                      className={`notification-item ${notif.isRead ? '' : 'unread'}`}
                     >
                       <img 
                         src={notif.actorAvatar} 

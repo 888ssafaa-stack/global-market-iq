@@ -166,6 +166,26 @@ export default function ListingCard({
                   <span>شريك اقتصادي</span>
                 </span>
               )}
+              {listing.isScheduled && listing.scheduledPublishDate && new Date(listing.scheduledPublishDate) > new Date() && (
+                <span 
+                  style={{
+                    fontSize: '0.73rem',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                    color: '#fff',
+                    fontWeight: '800',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
+                  }}
+                  title={`إعلان مجدول ينزل تلقائياً بتاريخ: ${new Date(listing.scheduledPublishDate).toLocaleString('ar-IQ')}`}
+                >
+                  <Clock size={12} />
+                  <span>📅 مجدول: {new Date(listing.scheduledPublishDate).toLocaleString('ar-IQ', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                </span>
+              )}
             </div>
             <div className="user-time-ago">
               {new Date(listing?.createdAt).toLocaleDateString('ar-IQ')} • {listing.category}
@@ -376,7 +396,36 @@ export default function ListingCard({
               <MessageCircle size={13} /> واتساب
             </a>
           </div>
+
+          {/* زر موقع المحل/الشركة على الخريطة */}
+          {listing.shopLocationUrl && (
+            <div className="info-row" style={{ marginTop: '6px' }}>
+              <MapPin size={14} color="#E41E3F" />
+              <a
+                href={listing.shopLocationUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: '#E41E3F',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  textDecoration: 'none',
+                  background: '#FEF2F2',
+                  padding: '3px 10px',
+                  borderRadius: '20px',
+                  border: '1px solid #FECACA'
+                }}
+              >
+                <MapPin size={13} />
+                موقع المحل / الشركة على الخريطة 📍
+              </a>
+            </div>
+          )}
         </div>
+
 
         <p className="card-desc">{listing.description}</p>
 
