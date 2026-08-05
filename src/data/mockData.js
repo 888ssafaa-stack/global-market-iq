@@ -63,41 +63,15 @@ export const INITIAL_USER = {
   name: 'زائر',
   avatar: makeAvatar('زائر', '94A3B8', 'ffffff'),
   cover: DEFAULT_COVER,
-  governorate: '',
-  area: '',
-  birthDate: '',
-  education: '',
-  phone: '',
-  gender: '',
-  bio: '',
-  role: 'GUEST',
-  joinedDate: '',
-};
-
-
-export const MOCK_APP_OWNER = {
-  id: 'app_owner_admin',
-  name: 'مالك التطبيق (إدارة)',
-  avatar: makeAvatar('مالك التطبيق', '1877F2', 'ffffff'),
-  cover: OWNER_COVER,
-  governorate: 'بغداد',
-  area: 'الكرادة',
-  birthDate: '1988-03-20',
-  education: 'ماجستير إدارة أعمال',
-  phone: '07800000000',
-  gender: 'ذكر',
-  bio: 'الحساب الرسمي لمالك التطبيق والمسؤول العام عن كافة العمليات.',
-  role: 'APP_OWNER',
-  joinedDate: '2022-01-01',
-};
-
-export const INITIAL_LISTINGS = [];
-/*
+  export const INITIAL_LISTINGS = [
+  {
+    id: 'list_1',
     title: 'فيلا مودرن للبيع في الجادرية',
     description: 'فيلا فاخرة بمساحة 400 متر مربع، تشطيب سوبر ديلوكس، تحتوي على 5 غرف نوم، كراج يتسع لـ 3 سيارات، ومسبح خاص.',
     price: 350000,
     currency: 'USD',
-    category: 'عقارات',
+    category: 'real_estate',
+    categoryName: 'عقارات',
     governorate: 'بغداد',
     area: 'الجادرية',
     nearestLandmark: 'قرب جامعة بغداد - المجمع العلمي',
@@ -105,16 +79,14 @@ export const INITIAL_LISTINGS = [];
     condition: 'جديد',
     status: 'active',
     likesCount: 24,
-    likedBy: ['user_200'],
+    likedBy: [],
     userId: 'user_101',
     userName: 'علي الفراتي',
     userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
-    createdAt: '2026-07-20T10:30:00Z',
+    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
     images: [
       'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800'
     ]
   },
   {
@@ -123,7 +95,8 @@ export const INITIAL_LISTINGS = [];
     description: 'سيارة مرسيدس بنز E300 وارد ألماني، ماشية 15 ألف كم فقط، فول مواصفات 1/1، بانوراما، كاميرات 360.',
     price: 48000,
     currency: 'USD',
-    category: 'سيارات',
+    category: 'cars',
+    categoryName: 'سيارات',
     governorate: 'أربيل',
     area: 'عينكاوا',
     nearestLandmark: 'مقابل مجدي مول',
@@ -135,11 +108,10 @@ export const INITIAL_LISTINGS = [];
     userId: 'user_202',
     userName: 'أحمد الكردي',
     userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400',
-    createdAt: '2026-07-21T14:15:00Z',
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
     images: [
       'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&q=80&w=800'
     ]
   },
   {
@@ -148,7 +120,8 @@ export const INITIAL_LISTINGS = [];
     description: 'جهاز آيفون 15 بروماكس لون تيتانيوم طبيعي، نسبة البطارية 99%، ناصع ونظيف جداً مع كافة ملحقاته الكارتونة الأصلية.',
     price: 1650000,
     currency: 'IQD',
-    category: 'أجهزة إلكترونية',
+    category: 'electronics',
+    categoryName: 'أجهزة إلكترونية',
     governorate: 'النجف الأشرف',
     area: 'شارع الروان',
     nearestLandmark: 'قرب مجمع الكفيل التجاري',
@@ -160,10 +133,9 @@ export const INITIAL_LISTINGS = [];
     userId: 'user_101',
     userName: 'علي الفراتي',
     userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
-    createdAt: '2026-07-22T08:00:00Z',
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
     images: [
-      'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1695048133021-39efbc67664e?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&q=80&w=800'
     ]
   },
   {
@@ -172,7 +144,8 @@ export const INITIAL_LISTINGS = [];
     description: 'دراجة رياضية ياماها R6 محرك 600cc بحالة ممتازة، ششة ديجيتال، عوادم أكربوفيك أصلية.',
     price: 6500,
     currency: 'USD',
-    category: 'دراجات',
+    category: 'motorcycles',
+    categoryName: 'دراجات',
     governorate: 'البصرة',
     area: 'الجزائر',
     nearestLandmark: 'قرب مستشفى الموسوي',
@@ -184,10 +157,9 @@ export const INITIAL_LISTINGS = [];
     userId: 'user_203',
     userName: 'حسين البصري',
     userAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400',
-    createdAt: '2026-07-19T18:00:00Z',
+    createdAt: new Date(Date.now() - 3600000 * 36).toISOString(),
     images: [
-      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&q=80&w=800'
     ]
   },
   {
@@ -196,19 +168,19 @@ export const INITIAL_LISTINGS = [];
     description: 'ثلاجة إل جي حديثة موفرة للطاقة 60% مع ضمان لمدة 10 سنوات على المكبس، لون سيلفر ستانلس ستيل.',
     price: 950000,
     currency: 'IQD',
-    category: 'أجهزة كهربائية',
+    category: 'electrical',
+    categoryName: 'أجهزة كهربائية',
     governorate: 'بغداد',
     area: 'الكرادة',
-    nearestLandmark: 'ساحة الواثق',
-    phone: '07705554433',
+    phone: '07809998877',
     condition: 'جديد',
     status: 'active',
-    likesCount: 15,
+    likesCount: 14,
     likedBy: [],
-    userId: 'user_204',
-    userName: 'معرض الأمانة للأجهزة',
-    userAvatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&q=80&w=400',
-    createdAt: '2026-07-21T09:20:00Z',
+    userId: 'user_101',
+    userName: 'علي الفراتي',
+    userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
+    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
     images: [
       'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800'
     ]
@@ -231,7 +203,7 @@ export const INITIAL_LISTINGS = [];
     userId: 'user_205',
     userName: 'شركة البابلية للمقاولات',
     userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=400',
-    createdAt: '2026-07-18T11:00:00Z',
+    createdAt: new Date(Date.now() - 3600000 * 60).toISOString(),
     images: [
       'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&q=80&w=800'
     ]
@@ -239,6 +211,50 @@ export const INITIAL_LISTINGS = [];
   {
     id: 'list_7',
     title: 'خدمات كهربائي منازل وتأسيسات حديثة',
+    description: 'خبير كهربائيات وتأسيس منازل بالكامل باستخدام أحدث المنظومات الذكية وربط كاميرات المراقبة والانتركم.',
+    price: 50000,
+    currency: 'IQD',
+    category: 'حرفيين',
+    governorate: 'كربلاء المقدسة',
+    area: 'حي الحسين',
+    nearestLandmark: 'مقابل مدرسة الإخاء',
+    phone: '07709990011',
+    condition: 'جديد',
+    status: 'active',
+    likesCount: 31,
+    likedBy: [],
+    userId: 'user_206',
+    userName: 'الأسطى أبو فهد',
+    userAvatar: 'https://images.unsplash.com/photo-1628157582853-a796fa650a6a?auto=format&fit=crop&q=80&w=400',
+    createdAt: new Date(Date.now() - 3600000 * 72).toISOString(),
+    images: [
+      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=800'
+    ]
+  },
+  {
+    id: 'list_8',
+    title: 'طقم قاط رجالي إيطالي رسمي فاخر',
+    description: 'بدلة رجالية رسمية تصميم إيطالي راقي، قماش صوف ناعم متوفر بألوان كحلي وأسود ورصاصي لكافة المقاسات.',
+    price: 120000,
+    currency: 'IQD',
+    category: 'ملابس',
+    governorate: 'بغداد',
+    area: 'زيونة',
+    nearestLandmark: 'مول زيونة - الطابق الثاني',
+    phone: '07712223344',
+    condition: 'جديد',
+    status: 'active',
+    likesCount: 28,
+    likedBy: [],
+    userId: 'user_207',
+    userName: 'بوتيك الأناقة',
+    userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=400',
+    createdAt: new Date(Date.now() - 3600000 * 80).toISOString(),
+    images: [
+      'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?auto=format&fit=crop&q=80&w=800'
+    ]
+  }
+];�مات كهربائي منازل وتأسيسات حديثة',
     description: 'خبير كهربائيات وتأسيس منازل بالكامل باستخدام أحدث المنظومات الذكية وربط كاميرات المراقبة والانتركم.',
     price: 50000,
     currency: 'IQD',

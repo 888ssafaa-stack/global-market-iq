@@ -1,4 +1,3 @@
-// src/components/ProfileView.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Settings,
@@ -18,7 +17,9 @@ import {
   Radio,
   UserPlus,
   Users,
-  PlayCircle
+  PlayCircle,
+  Trash2,
+  Eye
 } from 'lucide-react';
 import ListingCard from './ListingCard';
 import ProfileSettingsModal from './ProfileSettingsModal';
@@ -68,7 +69,10 @@ export default function ProfileView({
   onToggleFollow,
   isFollowing = false,
   followersCount = 0,
-  followingCount = 0
+  followingCount = 0,
+  watchHistory = [],
+  onClearWatchHistory,
+  onRemoveWatchHistoryItem
 }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileTab, setProfileTab] = useState('listings'); // 'listings' | 'partners' | 'blocked'
@@ -391,6 +395,26 @@ export default function ProfileView({
 
         <button
           type="button"
+          onClick={() => setProfileTab('history')}
+          style={{
+            padding: '10px 18px',
+            borderRadius: '10px',
+            border: 'none',
+            background: profileTab === 'history' ? '#8B5CF6' : 'var(--fb-input-bg)',
+            color: profileTab === 'history' ? '#fff' : 'inherit',
+            fontWeight: '700',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <Clock size={18} />
+          <span>سجل المشاهدات 👁️ ({watchHistory.length})</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setProfileTab('blocked')}
           style={{
             padding: '10px 18px',
@@ -591,6 +615,131 @@ export default function ProfileView({
                 </button>
               </div>
             ))}
+          </div>
+        )
+      {profileTab === 'history' && (
+        watchHistory.length === 0 ? (
+          <div className="empty-state">
+            <Clock className="empty-state-icon" style={{ opacity: 0.4 }} />
+            <h3>سجل المشاهدات فارغ حالياً</h3>
+            <p style={{ color: 'var(--fb-text-secondary)', marginTop: '6px' }}>
+              أي إعلان أو فيديو أو بث مباشر تقوم بمشاهدته سيظهر هنا تلقائياً لسهولة الرجوع إليه في أي وقت.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* هيدر قسم السجل مع زر المسح النهائي */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid var(--fb-divider)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Clock size={20} color="#8B5CF6" />
+                <span>سجل المشاهدات الحية والتفاعلية ({watchHistory.length})</span>
+              </div>
+
+              {onClearWatchHistory && (
+                <button
+                  type="button"
+                  onClick={onClearWatchHistory}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid #EF4444',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#EF4444',
+                    fontSize: '0.85rem',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Trash2 size={15} />
+                  <span>مسح سجل المشاهدات بالكامل 🗑️</span>
+                </button>
+              )}
+            </div>
+
+            {/* شبكة بطاقات العناصر المشاهدة مؤخراً */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+              {watchHistory.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    background: 'var(--fb-card-bg)',
+                    border: '1px solid var(--fb-divider)',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: 'var(--fb-shadow)',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ position: 'relative', width: '100%', height: '150px', background: '#0f172a' }}>
+                    <img
+                      src={item.thumbnail}
+                      alt={item.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=500&q=80'; }}
+                    />
+
+                    {/* شارة نوع العنصر المشاهد */}
+                    <div style={{
+                      position: 'absolute', top: '10px', right: '10px',
+                      background: item.type === 'stream' || item.type === 'video' ? '#EF4444' : '#1877F2',
+                      color: '#fff', padding: '4px 10px', borderRadius: '8px',
+                      fontSize: '0.75rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                    }}>
+                      {item.type === 'stream' ? '🔴 بث مباشر' : item.type === 'video' ? '🎥 فيديو مسجل' : '📦 إعلان / منشور'}
+                    </div>
+
+                    {/* زر إزالة عنصر فردي من السجل */}
+                    {onRemoveWatchHistoryItem && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveWatchHistoryItem(item.id)}
+                        style={{
+                          position: 'absolute', top: '10px', left: '10px',
+                          background: 'rgba(0,0,0,0.65)', border: 'none', borderRadius: '50%',
+                          width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#fff', cursor: 'pointer', transition: 'background 0.2s'
+                        }}
+                        title="حذف هذا العنصر من السجل"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, justifyContent: 'space-between' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '0.98rem', fontWeight: '800', color: 'var(--fb-text-primary)', lineHeight: 1.4 }}>
+                        {item.title}
+                      </h4>
+
+                      {item.subtitle && (
+                        <div style={{ fontSize: '0.82rem', color: 'var(--fb-text-secondary)', fontWeight: '600' }}>
+                          📂 {item.subtitle}
+                        </div>
+                      )}
+
+                      {item.price && (
+                        <div style={{ fontSize: '0.92rem', color: '#10B981', fontWeight: '900', marginTop: '4px' }}>
+                          💰 {Number(item.price).toLocaleString()} د.ع
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--fb-divider)', fontSize: '0.76rem', color: 'var(--fb-text-secondary)' }}>
+                      <span>👤 {item.user || 'مستخدم'}</span>
+                      <span>🕒 {new Date(item.viewedAt || Date.now()).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )
       )}

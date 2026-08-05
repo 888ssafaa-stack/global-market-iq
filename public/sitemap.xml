@@ -7,62 +7,118 @@
   <!-- الصفحة الرئيسية -->
   <url>
     <loc>https://www.global-market-iq.com/</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="ar" href="https://www.global-market-iq.com/" />
     <image:image>
       <image:loc>https://www.global-market-iq.com/app-icon.jpg</image:loc>
-      <image:title>السوق العالمي - منصة الإعلانات المجانية</image:title>
+      <image:title>السوق العالمي - منصة الإعلانات المجانية الأولى في العراق</image:title>
     </image:image>
   </url>
 
-  <!-- العروض والصفقات -->
+  <!-- العروض والصفقات المخفضة -->
   <url>
     <loc>https://www.global-market-iq.com/deals</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.95</priority>
   </url>
 
-  <!-- تحميل التطبيق -->
+  <!-- رابط تحميل تطبيق الأندرويد المباشر -->
   <url>
     <loc>https://www.global-market-iq.com/global-market-iq.apk</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.90</priority>
   </url>
 
-  <!-- عن الموقع -->
+  <!-- أقسام السوق الـ 17 الرئيسية للأرشفة والمحركات -->
+  <url>
+    <loc>https://www.global-market-iq.com/?category=real_estate</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=cars</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=motorcycles</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=electrical</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=electronics</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=furnishings</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=animals</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=livestock</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=education</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://www.global-market-iq.com/?category=gold_jewelry</loc>
+    <lastmod>2026-08-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- الصفحات التعريفية -->
   <url>
     <loc>https://www.global-market-iq.com/about</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.70</priority>
   </url>
-
-  <!-- تواصل معنا -->
   <url>
     <loc>https://www.global-market-iq.com/contact</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.70</priority>
   </url>
-
-  <!-- سياسة الخصوصية -->
   <url>
     <loc>https://www.global-market-iq.com/privacy</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
+    <priority>0.50</priority>
   </url>
-
-  <!-- الشروط والأحكام -->
   <url>
     <loc>https://www.global-market-iq.com/terms</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-05</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
+    <priority>0.50</priority>
   </url>
 
 </urlset>

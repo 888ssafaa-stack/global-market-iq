@@ -1,7 +1,20 @@
 User-agent: *
 Allow: /
 
-# Sitemap
+# Directives for major search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Yandex
+Allow: /
+
+# Sitemap Indexing
 Sitemap: https://www.global-market-iq.com/sitemap.xml
 
 # Block build artifacts

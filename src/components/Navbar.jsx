@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { 
   Store, 
   Search, 
@@ -48,6 +48,25 @@ export default function Navbar({
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchScope, setSearchScope] = useState(userSearchQuery?.trim() ? 'users' : 'listings');
   const { user, logout } = useContext(AuthContext);
+
+  const notifRef = useRef(null);
+
+  // إغلاق نافذة الإشعارات تلقائياً عند النقر في أي مكان خارجها بالصفحة
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   const isAppOwner = Boolean(
     user?.role === 'APP_OWNER' || 
@@ -108,8 +127,146 @@ export default function Navbar({
           </div>
         </button>
 
-        {/* 🕒 الساعة الرقمية البارزة بالتاريخ الميلادي */}
-        <DigitalClock />
+        {/* 🕒 الساعة الرقمية والتقويم متبوعة بأيقونة الإشعارات تحتها مباشرة */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', position: 'relative' }} ref={notifRef}>
+          <DigitalClock />
+
+          {/* 🔔 أيقونة وجرس الإشعارات المباشرة تحت الساعة والتقويم مباشرة */}
+          <button 
+            className="modal-close-btn"
+            onClick={handleToggleNotifications}
+            title="الإشعارات المباشرة"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 10px',
+              borderRadius: '20px',
+              background: 'var(--fb-input-bg, rgba(24, 119, 242, 0.1))',
+              border: '1px solid var(--fb-divider)',
+              cursor: 'pointer',
+              fontSize: '0.78rem',
+              fontWeight: '700',
+              color: 'var(--fb-text-primary)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Bell size={15} color="#1877F2" />
+            <span>الإشعارات</span>
+            {unreadCount > 0 && (
+              <span 
+                style={{
+                  backgroundColor: '#EF4444',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '18px',
+                  height: '18px',
+                  fontSize: '0.72rem',
+                  fontWeight: '800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.4)'
+                }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* قائمة الإشعارات المنسدلة المعتمة تحت الساعة مباشرة */}
+          {showNotifications && (
+            <div className="notifications-dropdown" style={{ top: '68px', right: '50%', transform: 'translateX(50%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid var(--fb-divider)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Bell size={18} color="#1877F2" />
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>الإشعارات ({unreadCount})</h4>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {onSendTestNotification && (
+                    <button
+                      type="button"
+                      onClick={() => onSendTestNotification(user?.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#10B981',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + تجربة إشعار
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowNotifications(false)}
+                    style={{
+                      background: 'var(--fb-hover-bg, #f2f2f2)',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '26px',
+                      height: '26px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: 'var(--fb-text-secondary)'
+                    }}
+                    title="إغلاق الإشعارات"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+
+              {myNotifications.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--fb-text-secondary)', fontSize: '0.85rem' }}>
+                  لا توجد إشعارات حالياً 🔔
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {myNotifications.map((notif) => (
+                    <div 
+                      key={notif.id}
+                      onClick={() => {
+                        if (onNotificationClick) onNotificationClick(notif);
+                        setShowNotifications(false);
+                      }}
+                      className={`notification-item ${notif.isRead ? '' : 'unread'}`}
+                    >
+                      <img 
+                        src={notif.actorAvatar} 
+                        alt={notif.actorName} 
+                        style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '700' }}>{notif.actorName}</div>
+                        <div style={{ color: 'var(--fb-text-primary)' }}>
+                          {notif.type === 'partnership_request' ? (
+                            <span style={{ color: '#10B981', fontWeight: '700' }}>أرسل لك طلب شراكة اقتصادية 🤝</span>
+                          ) : notif.type === 'partnership_accepted' ? (
+                            <span style={{ color: '#10B981', fontWeight: '700' }}>وافق على طلب الشراكة الاقتصادية معك 🤝</span>
+                          ) : notif.type === 'comment' ? (
+                            `علق على إعلانك: "${notif.listingTitle}"`
+                          ) : (
+                            `أعجب بإعلانك: "${notif.listingTitle}"`
+                          )}
+                        </div>
+                        {notif.text && (
+                          <div style={{ color: 'var(--fb-text-secondary)', fontStyle: 'italic', marginTop: '2px', fontSize: '0.8rem' }}>
+                            "{notif.text}"
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* 🔍 شريط البحث الذكي المزدوج (المنتجات + المستخدمون) */}
         <div className="search-bar-unified" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -268,10 +425,10 @@ export default function Navbar({
           </span>
         )}
 
-        {/* 📱 زر تحميل التطبيق المباشر */}
+        {/* 📱 زر تحميل وتحديث التطبيق المباشر */}
         <a
-          href="/app.apk"
-          download="app.apk"
+          href="/global-market-iq.apk"
+          download="global-market-iq.apk"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -286,10 +443,13 @@ export default function Navbar({
             boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
             transition: 'all 0.2s ease',
           }}
-          title="تحميل تطبيق الأندرويد المباشر (APK)"
+          title="تحميل وتحديث تطبيق السوق العالمي للأندرويد المباشر (APK v1.0.8)"
+          onClick={() => {
+            alert('جاري تنزيل أحدث إصدار وتحديث لتطبيق السوق العالمي (v1.0.8) 📱');
+          }}
         >
           <Download size={18} />
-          <span>تطبيق Android 📱</span>
+          <span>تحديث / تحميل التطبيق 📱</span>
         </a>
 
         {/* 📡 زر البث المباشر الفوري */}
@@ -324,148 +484,6 @@ export default function Navbar({
           <PlusCircle size={18} />
           <span>نشر إعلان</span>
         </button>
-
-        {/* جرس الإشعارات المباشرة */}
-        <div style={{ position: 'relative' }}>
-          <button 
-            className="modal-close-btn"
-            onClick={handleToggleNotifications}
-            title="الإشعارات المباشرة"
-            style={{ position: 'relative' }}
-          >
-            <Bell size={20} />
-            {unreadCount > 0 && (
-              <span 
-                style={{
-                  position: 'absolute',
-                  top: '-2px',
-                  right: '-2px',
-                  backgroundColor: '#EF4444',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '18px',
-                  height: '18px',
-                  fontSize: '0.72rem',
-                  fontWeight: '800',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.4)'
-                }}
-              >
-                {unreadCount}
-              </span>
-            )}
-          </button>
-
-          {/* قائمة الإشعارات المنسدلة المعتمة وغير الشفافة بالكامل */}
-          {showNotifications && (
-            <div className="notifications-dropdown">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', paddingBottom: '8px', borderBottom: '1px solid var(--fb-divider)' }}>
-                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '800' }}>الإشعارات ({unreadCount})</h4>
-                {onSendTestNotification && (
-                  <button
-                    type="button"
-                    onClick={() => onSendTestNotification(user?.id)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#10B981',
-                      fontSize: '0.75rem',
-                      fontWeight: '700',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    + تجربة إشعار
-                  </button>
-                )}
-              </div>
-
-              {myNotifications.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--fb-text-secondary)', fontSize: '0.85rem' }}>
-                  لا توجد إشعارات حالياً
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {myNotifications.map((notif) => (
-                    <div 
-                      key={notif.id}
-                      onClick={() => onNotificationClick && onNotificationClick(notif)}
-                      className={`notification-item ${notif.isRead ? '' : 'unread'}`}
-                    >
-                      <img 
-                        src={notif.actorAvatar} 
-                        alt={notif.actorName} 
-                        style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} 
-                      />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: '700' }}>{notif.actorName}</div>
-                        <div style={{ color: 'var(--fb-text-primary)' }}>
-                          {notif.type === 'partnership_request' ? (
-                            <span style={{ color: '#10B981', fontWeight: '700' }}>أرسل لك طلب شراكة اقتصادية 🤝</span>
-                          ) : notif.type === 'partnership_accepted' ? (
-                            <span style={{ color: '#10B981', fontWeight: '700' }}>وافق على طلب الشراكة الاقتصادية معك 🤝</span>
-                          ) : notif.type === 'comment' ? (
-                            `علق على إعلانك: "${notif.listingTitle}"`
-                          ) : (
-                            `أعجب بإعلانك: "${notif.listingTitle}"`
-                          )}
-                        </div>
-                        {notif.text && (
-                          <div style={{ color: 'var(--fb-text-secondary)', fontStyle: 'italic', marginTop: '2px', fontSize: '0.8rem' }}>
-                            "{notif.text}"
-                          </div>
-                        )}
-
-                        {/* أزرار الموافقة أو الرفض لطلب الشراكة */}
-                        {notif.type === 'partnership_request' && !notif.actionTaken && (
-                          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                            <button
-                              type="button"
-                              onClick={() => onAcceptPartnership && onAcceptPartnership(notif)}
-                              style={{
-                                padding: '4px 12px',
-                                borderRadius: '6px',
-                                border: 'none',
-                                background: '#10B981',
-                                color: '#fff',
-                                fontWeight: '700',
-                                fontSize: '0.75rem',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              قبول الشراكة
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onRejectPartnership && onRejectPartnership(notif)}
-                              style={{
-                                padding: '4px 12px',
-                                borderRadius: '6px',
-                                border: '1px solid var(--fb-divider)',
-                                background: 'transparent',
-                                color: 'var(--fb-text-secondary)',
-                                fontWeight: '600',
-                                fontSize: '0.75rem',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              رفض
-                            </button>
-                          </div>
-                        )}
-
-                        <div style={{ fontSize: '0.7rem', color: 'var(--fb-text-secondary)', marginTop: '4px' }}>
-                          {new Date(notif.createdAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* زر التبديل بين الوضع الداكن والفاتح */}
         <button 

@@ -66,6 +66,15 @@ export default function App() {
   const [viewedUser, setViewedUser] = useState(null);
   const [registeredUsersCount, setRegisteredUsersCount] = useState(0);
 
+  // 5.8 سجل المشاهدات التفاعلي المباشر للمنشورات والفيديوهات والبث المباشر
+  const [watchHistory, setWatchHistory] = useState(() => {
+    if (!user?.id) return [];
+    try {
+      const saved = localStorage.getItem(`gm_watch_history_${user.id}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch (_) { return []; }
+  });
+
   // 6. التبويبات والفلاتر والفرز الزمني
   const [activeTab, setActiveTab] = useState('market'); // 'market', 'deals', 'profile', 'admin'
   const [selectedCategory, setSelectedCategory] = useState('ALL');
@@ -406,6 +415,58 @@ export default function App() {
     }
   }, [blockedUsers, user?.id]);
 
+  // مزامنة سجل المشاهدات تلقائياً عند تغيير الحساب
+  useEffect(() => {
+    if (user?.id) {
+      try {
+        const saved = localStorage.getItem(`gm_watch_history_${user.id}`);
+        if (saved) setWatchHistory(JSON.parse(saved));
+      } catch (_) {}
+    } else {
+      setWatchHistory([]);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      try {
+        localStorage.setItem(`gm_watch_history_${user.id}`, JSON.stringify(watchHistory));
+      } catch (_) {}
+    }
+  }, [watchHistory, user?.id]);
+
+  const handleAddToWatchHistory = (itemData) => {
+    if (!itemData || !itemData.id) return;
+    const newItem = {
+      id: String(itemData.id),
+      type: itemData.type || 'listing', // 'listing' | 'video' | 'stream'
+      title: itemData.title || 'عنصر مشاهد',
+      subtitle: itemData.subtitle || itemData.category || '',
+      price: itemData.price || null,
+      thumbnail: itemData.thumbnail || itemData.image || itemData.images?.[0] || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=300&q=80',
+      user: itemData.userName || itemData.user || 'عضو في السوق العالمي',
+      viewedAt: new Date().toISOString()
+    };
+
+    setWatchHistory(prev => {
+      const filtered = prev.filter(h => h.id !== newItem.id);
+      return [newItem, ...filtered].slice(0, 100);
+    });
+  };
+
+  const handleClearWatchHistory = () => {
+    if (window.confirm('هل أنت تأكد من رغبتك في مسح سجل المشاهدات بالكامل؟ 🗑️')) {
+      setWatchHistory([]);
+      if (user?.id) {
+        try { localStorage.removeItem(`gm_watch_history_${user.id}`); } catch (_) {}
+      }
+    }
+  };
+
+  const handleRemoveWatchHistoryItem = (targetId) => {
+    setWatchHistory(prev => prev.filter(item => item.id !== String(targetId)));
+  };
+
   useEffect(() => {
     if (!authLoading && authUser) {
       const tosAccepted = localStorage.getItem(`fb_tos_accepted_${authUser.id}`);
@@ -458,6 +519,18 @@ export default function App() {
     setEditingListing(listing);
     setOnlyPhotosMode(false);
     setIsListingModalOpen(true);
+
+    if (listing) {
+      handleAddToWatchHistory({
+        id: listing.id,
+        type: listing.isDeal ? 'deal' : 'listing',
+        title: listing.title,
+        subtitle: listing.categoryName || listing.category || listing.governorate,
+        price: listing.price,
+        thumbnail: listing.images?.[0] || listing.image,
+        userName: listing.userName
+      });
+    }
   };
 
   const handleOpenManagePhotosModal = (listing) => {
@@ -712,9 +785,21 @@ export default function App() {
     } catch (_) {}
   };
 
-  const handleOpenLiveStream = (targetUser) => {
-    setLiveStreamerUser(targetUser || user);
+  const handleOpenLiveStream = (targetUser, targetVideo = null) => {
+    const activeStr = targetUser || user;
+    setLiveStreamerUser(activeStr);
     setIsLiveStreamModalOpen(true);
+
+    if (activeStr || targetVideo) {
+      handleAddToWatchHistory({
+        id: targetVideo?.id || activeStr?.id || `stream_${Date.now()}`,
+        type: targetVideo ? 'video' : 'stream',
+        title: targetVideo?.title || `بث مباشر: ${activeStr?.name || 'صاحب البث'}`,
+        subtitle: activeStr?.specialty || 'بث مباشر تفاعلي 🔴',
+        thumbnail: targetVideo?.thumbnail || activeStr?.avatar,
+        userName: activeStr?.name || 'صاحب البث'
+      });
+    }
   };
 
   const handleToggleFollow = (targetUserId, targetUserName) => {
@@ -2087,6 +2172,9 @@ export default function App() {
               isFollowing={Boolean(followingMap[(viewedUser || user)?.id || (viewedUser || user)?.uid])}
               followersCount={Object.keys(followingMap).length + 3}
               followingCount={Object.values(followingMap).filter(Boolean).length}
+              watchHistory={watchHistory}
+              onClearWatchHistory={handleClearWatchHistory}
+              onRemoveWatchHistoryItem={handleRemoveWatchHistoryItem}
             />
           ) : (
             <div style={{

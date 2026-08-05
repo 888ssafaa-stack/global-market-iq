@@ -76,8 +76,8 @@ export default function Footer({ onOpenPage }) {
           </div>
 
           <a
-            href="/app.apk"
-            download="app.apk"
+            href="/global-market-iq.apk"
+            download="global-market-iq.apk"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -92,9 +92,12 @@ export default function Footer({ onOpenPage }) {
               fontSize: '0.9rem',
               boxShadow: '0 8px 20px rgba(16, 185, 129, 0.25)',
             }}
+            onClick={() => {
+              alert('جاري تنزيل أحدث إصدار وتحديث لتطبيق السوق العالمي (v1.0.8) 📱');
+            }}
           >
             <Download size={16} />
-            <span>تحميل تطبيق Android</span>
+            <span>تحديث / تحميل تطبيق Android 📱</span>
           </a>
         </div>
 

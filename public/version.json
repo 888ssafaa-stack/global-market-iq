@@ -1,8 +1,8 @@
 {
-  "version": "1.0.6",
-  "buildCode": 7,
-  "releaseDate": "2026-08-02",
+  "version": "1.0.8",
+  "buildCode": 10,
+  "releaseDate": "2026-08-05",
   "downloadUrl": "/global-market-iq.apk",
-  "changelog": "إصلاح معالج استجابة Google Sign-In وضمان إتمام تسجيل الدخول وإنشاء الجلسة فور اختيار الحساب.",
-  "forceUpdate": false
+  "changelog": "إعادة تموضع زر الإشعارات تحت الساعة والتقويم مباشرة، وتفعيل مسح الذاكرة المؤقتة القديمة وسجل المشاهدات.",
+  "forceUpdate": true
 }

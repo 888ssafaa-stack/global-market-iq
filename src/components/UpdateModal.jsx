@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Sparkles, X, RefreshCw, CheckCircle2 } from 'lucide-react';
 
-export const CURRENT_APP_VERSION = "1.0.6"; // الإصدار الحالي المثبت
+export const CURRENT_APP_VERSION = "1.0.8"; // الإصدار الحالي المثبت
 
 export default function UpdateModal() {
   const [updateInfo, setUpdateInfo] = useState(null);

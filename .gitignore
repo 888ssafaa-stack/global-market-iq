@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Large binaries (APKs & AABs)
+*.apk
+*.aab
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
