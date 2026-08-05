@@ -1,11 +1,4 @@
-const CACHE_NAME = 'gm-iq-v1.0.8-force-flush';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/app-icon.jpg',
-  '/favicon.svg'
-];
+const CACHE_NAME = 'gm-iq-v1.0.8-v3-flush';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -25,16 +18,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // تجاوز الكاش إجبارياً لملفات النسخة والهيدر والملاحة لضمان الاستلام المباشر للتحديث
-  if (event.request.url.includes('version.json') || event.request.url.includes('sw.js') || event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
+  // Network-first strategy: always fetch live update first, fallback to cache if offline
+  if (event.request.method !== 'GET' || event.request.url.startsWith('chrome-extension')) {
     return;
   }
+  
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });
